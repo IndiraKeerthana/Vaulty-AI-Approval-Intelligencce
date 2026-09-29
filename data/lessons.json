@@ -1,5 +1,115 @@
 [
   {
+    "lesson_id": "LES-1790690991",
+    "vendor_id": "VND-002",
+    "vendor_name": "ACME Corp",
+    "topic": "Lesson on ACME Corp (Price mismatch (\u20b9550 vs \u20b9500 PO))",
+    "lesson": "CONFIRMED RESOLUTION LESSON for ACME Corp: Payment approval on case VX-2001 confirmed that line-item verification and amendment validation was accurate. Retain this evidence-checking pattern.",
+    "source_case_id": "VX-2001",
+    "human_feedback_type": "HUMAN_APPROVAL",
+    "confidence_score": 0.95,
+    "created_at": "2026-09-29 19:39:51"
+  },
+  {
+    "lesson_id": "LES-1790690990",
+    "vendor_id": "VND-002",
+    "vendor_name": "ACME Corp",
+    "topic": "Lesson on ACME Corp (Price mismatch (\u20b9550 vs \u20b9500 PO))",
+    "lesson": "CONFIRMED RESOLUTION LESSON for ACME Corp: Payment approval on case VX-2001 confirmed that line-item verification and amendment validation was accurate. Retain this evidence-checking pattern.",
+    "source_case_id": "VX-2001",
+    "human_feedback_type": "HUMAN_APPROVAL",
+    "confidence_score": 0.95,
+    "created_at": "2026-09-29 19:39:50"
+  },
+  {
+    "lesson_id": "LES-1790690989",
+    "vendor_id": "VND-002",
+    "vendor_name": "ACME Corp",
+    "topic": "Lesson on ACME Corp (Price mismatch (\u20b9550 vs \u20b9500 PO))",
+    "lesson": "CONFIRMED RESOLUTION LESSON for ACME Corp: Payment approval on case VX-2001 confirmed that line-item verification and amendment validation was accurate. Retain this evidence-checking pattern.",
+    "source_case_id": "VX-2001",
+    "human_feedback_type": "HUMAN_APPROVAL",
+    "confidence_score": 0.95,
+    "created_at": "2026-09-29 19:39:49"
+  },
+  {
+    "lesson_id": "LES-1790690989",
+    "vendor_id": "VND-002",
+    "vendor_name": "ACME Corp",
+    "topic": "Lesson on ACME Corp (Price mismatch (\u20b9550 vs \u20b9500 PO))",
+    "lesson": "CONFIRMED RESOLUTION LESSON for ACME Corp: Payment approval on case VX-2001 confirmed that line-item verification and amendment validation was accurate. Retain this evidence-checking pattern.",
+    "source_case_id": "VX-2001",
+    "human_feedback_type": "HUMAN_APPROVAL",
+    "confidence_score": 0.95,
+    "created_at": "2026-09-29 19:39:49"
+  },
+  {
+    "lesson_id": "LES-1790690987",
+    "vendor_id": "VND-002",
+    "vendor_name": "ACME Corp",
+    "topic": "Lesson on ACME Corp (Price mismatch (\u20b9550 vs \u20b9500 PO))",
+    "lesson": "CONFIRMED RESOLUTION LESSON for ACME Corp: Payment approval on case VX-2001 confirmed that line-item verification and amendment validation was accurate. Retain this evidence-checking pattern.",
+    "source_case_id": "VX-2001",
+    "human_feedback_type": "HUMAN_APPROVAL",
+    "confidence_score": 0.95,
+    "created_at": "2026-09-29 19:39:47"
+  },
+  {
+    "lesson_id": "LES-1790690985",
+    "vendor_id": "VND-002",
+    "vendor_name": "ACME Corp",
+    "topic": "Lesson on ACME Corp (Price mismatch (\u20b9550 vs \u20b9500 PO))",
+    "lesson": "CONFIRMED RESOLUTION LESSON for ACME Corp: Payment approval on case VX-2001 confirmed that line-item verification and amendment validation was accurate. Retain this evidence-checking pattern.",
+    "source_case_id": "VX-2001",
+    "human_feedback_type": "HUMAN_APPROVAL",
+    "confidence_score": 0.95,
+    "created_at": "2026-09-29 19:39:45"
+  },
+  {
+    "lesson_id": "LES-1790690984",
+    "vendor_id": "VND-002",
+    "vendor_name": "ACME Corp",
+    "topic": "Lesson on ACME Corp (Price mismatch (\u20b9550 vs \u20b9500 PO))",
+    "lesson": "CONFIRMED RESOLUTION LESSON for ACME Corp: Payment approval on case VX-2001 confirmed that line-item verification and amendment validation was accurate. Retain this evidence-checking pattern.",
+    "source_case_id": "VX-2001",
+    "human_feedback_type": "HUMAN_APPROVAL",
+    "confidence_score": 0.95,
+    "created_at": "2026-09-29 19:39:44"
+  },
+  {
+    "lesson_id": "LES-1790690958",
+    "vendor_id": "VND-002",
+    "vendor_name": "ACME Corp",
+    "topic": "Lesson on ACME Corp (Price mismatch)",
+    "lesson": "HUMAN CORRECTION LESSON for ACME Corp: On case VX-TEST-999, agent recommended 'APPLY_AMENDMENT', but human supervisor CORRECTED it with notes: 'Supervisor correction: Verify amendment effective date before auto-releasing payment.'. Future investigations must verify physical goods receipts and explicit approval before recommending resolution.",
+    "source_case_id": "VX-TEST-999",
+    "human_feedback_type": "HUMAN_CORRECTION",
+    "confidence_score": 0.95,
+    "created_at": "2026-09-29 19:39:18"
+  },
+  {
+    "lesson_id": "LES-1790690923",
+    "vendor_id": "VND-002",
+    "vendor_name": "ACME Corp",
+    "topic": "Lesson on ACME Corp (Price mismatch (\u20b9550 vs \u20b9500 PO))",
+    "lesson": "CONFIRMED RESOLUTION LESSON for ACME Corp: Payment approval on case VX-2001 confirmed that line-item verification and amendment validation was accurate. Retain this evidence-checking pattern.",
+    "source_case_id": "VX-2001",
+    "human_feedback_type": "HUMAN_APPROVAL",
+    "confidence_score": 0.95,
+    "created_at": "2026-09-29 19:38:43"
+  },
+  {
+    "lesson_id": "LES-1790690888",
+    "vendor_id": "VND-001",
+    "vendor_name": "Global Supplies Ltd",
+    "topic": "Lesson on Global Supplies Ltd (None (Matching consistency))",
+    "lesson": "CONFIRMED RESOLUTION LESSON for Global Supplies Ltd: Payment approval on case VX-1001 confirmed that line-item verification and amendment validation was accurate. Retain this evidence-checking pattern.",
+    "source_case_id": "VX-1001",
+    "human_feedback_type": "HUMAN_APPROVAL",
+    "confidence_score": 0.95,
+    "created_at": "2026-09-29 19:38:08"
+  },
+  {
     "lesson_id": "LES-1790690383",
     "vendor_id": "VND-002",
     "vendor_name": "ACME Corp",

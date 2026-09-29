@@ -13,13 +13,27 @@ def inject_custom_css():
     }
 
     /* Hide Streamlit Chrome & Headers */
-    #MainMenu { visibility: hidden; }
-    footer { visibility: hidden; }
-    header[data-testid="stHeader"] { display: none !important; }
+    #MainMenu { visibility: hidden !important; }
+    footer { visibility: hidden !important; }
     div[data-testid="stToolbar"] { display: none !important; }
     div[data-testid="stDecoration"] { display: none !important; }
     div[data-testid="stSidebarNav"] { display: none !important; }
     .stDeployButton { display: none !important; }
+
+    header[data-testid="stHeader"] {
+        background: transparent !important;
+        height: 3rem !important;
+        z-index: 99 !important;
+    }
+
+    [data-testid="collapsedControl"],
+    button[data-testid="stSidebarCollapseButton"] {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        z-index: 1000 !important;
+        color: #0f172a !important;
+    }
 
     /* Layout Max Width & Spacing */
     .main .block-container {
