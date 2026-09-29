@@ -1,0 +1,91 @@
+[
+  {
+    "case_id": "VX-1001",
+    "invoice_id": "INV-1001",
+    "vendor_id": "VND-001",
+    "vendor_name": "Global Supplies Ltd",
+    "amount": 50000.0,
+    "discrepancy_type": "None (Matching consistency)",
+    "status": "INVESTIGATING",
+    "risk_level": "Low",
+    "last_action": "Case escalated to Procurement Manager.",
+    "created_at": "2026-09-28 09:00:00",
+    "updated_at": "2026-09-29 19:00:55"
+  },
+  {
+    "case_id": "VX-2001",
+    "invoice_id": "INV-2001",
+    "vendor_id": "VND-002",
+    "vendor_name": "ACME Corp",
+    "amount": 55000.0,
+    "discrepancy_type": "Price mismatch (\u20b9550 vs \u20b9500 PO)",
+    "status": "AWAITING_HUMAN_PAYMENT_RELEASE",
+    "risk_level": "Medium",
+    "last_action": "Linked approved amendment AM-17. Exception verified and ready for payment release.",
+    "created_at": "2026-09-28 09:15:00",
+    "updated_at": "2026-09-29 19:00:55"
+  },
+  {
+    "case_id": "VX-2002",
+    "invoice_id": "INV-2002",
+    "vendor_id": "VND-002",
+    "vendor_name": "ACME Corp",
+    "amount": 55000.0,
+    "discrepancy_type": "Price mismatch (\u20b9550 vs \u20b9500 PO)",
+    "status": "INVESTIGATING",
+    "risk_level": "Medium",
+    "last_action": "Drafted vendor query regarding rate discrepancy. Invoice placed on PENDING VENDOR RESPONSE.",
+    "created_at": "2026-09-28 09:30:00",
+    "updated_at": "2026-09-29 19:00:56"
+  },
+  {
+    "case_id": "VX-2044",
+    "invoice_id": "INV-2044",
+    "vendor_id": "VND-004",
+    "vendor_name": "Nexus Industrial Solutions",
+    "amount": 100000.0,
+    "discrepancy_type": "Quantity / Partial Delivery Mismatch (100 billed vs 80 received)",
+    "status": "INVESTIGATING",
+    "risk_level": "High",
+    "last_action": "Issued formal request for corrected invoice based on warehouse receipt. Status set to CORRECTION REQUESTED.",
+    "created_at": "2026-09-28 09:45:00",
+    "updated_at": "2026-09-29 19:00:56"
+  },
+  {
+    "case_id": "VX-3005",
+    "invoice_id": "INV-3005",
+    "vendor_id": "VND-005",
+    "vendor_name": "CyberTech Dynamics",
+    "amount": 120000.0,
+    "discrepancy_type": "Price mismatch + Recent Banking Detail Change",
+    "status": "FRAUD REVIEW",
+    "risk_level": "Critical",
+    "last_action": "Investigation completed for INV-3005. Exception: Potential fraud signal. Recommended Action: FLAG_FRAUD.",
+    "created_at": "2026-09-28 10:00:00",
+    "updated_at": "2026-09-29 19:00:56"
+  },
+  {
+    "case_id": "VX-4001",
+    "invoice_id": "INV-4001",
+    "vendor_id": "VND-006",
+    "vendor_name": "Starlight Logistics",
+    "amount": 35000.0,
+    "discrepancy_type": "Potential Duplicate Invoice",
+    "status": "UNPROCESSED",
+    "risk_level": "Medium",
+    "last_action": "Pending Triage",
+    "created_at": "2026-09-28 10:15:00"
+  },
+  {
+    "case_id": "VX-5001",
+    "invoice_id": "INV-5001",
+    "vendor_id": "VND-007",
+    "vendor_name": "Vertex Media",
+    "amount": 85000.0,
+    "discrepancy_type": "Missing Purchase Order Reference",
+    "status": "UNPROCESSED",
+    "risk_level": "Medium",
+    "last_action": "Pending Triage",
+    "created_at": "2026-09-28 10:30:00"
+  }
+]

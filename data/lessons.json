@@ -1,0 +1,178 @@
+[
+  {
+    "lesson_id": "LES-1790688656",
+    "vendor_id": "VND-002",
+    "vendor_name": "ACME Corp",
+    "topic": "Lesson on ACME Corp (Price mismatch)",
+    "lesson": "HUMAN CORRECTION LESSON for ACME Corp: On case VX-TEST-999, agent recommended 'APPLY_AMENDMENT', but human supervisor CORRECTED it with notes: 'Supervisor correction: Verify amendment effective date before auto-releasing payment.'. Future investigations must verify physical goods receipts and explicit approval before recommending resolution.",
+    "source_case_id": "VX-TEST-999",
+    "human_feedback_type": "HUMAN_CORRECTION",
+    "confidence_score": 0.95,
+    "created_at": "2026-09-29 19:00:56"
+  },
+  {
+    "lesson_id": "LES-1790687580",
+    "vendor_id": "VND-002",
+    "vendor_name": "ACME Corp",
+    "topic": "Lesson on ACME Corp (Price mismatch)",
+    "lesson": "HUMAN CORRECTION LESSON for ACME Corp: On case VX-TEST-999, agent recommended 'APPLY_AMENDMENT', but human supervisor CORRECTED it with notes: 'Supervisor correction: Verify amendment effective date before auto-releasing payment.'. Future investigations must verify physical goods receipts and explicit approval before recommending resolution.",
+    "source_case_id": "VX-TEST-999",
+    "human_feedback_type": "HUMAN_CORRECTION",
+    "confidence_score": 0.95,
+    "created_at": "2026-09-29 18:43:00"
+  },
+  {
+    "lesson_id": "LES-1790687301",
+    "vendor_id": "VND-002",
+    "vendor_name": "ACME Corp",
+    "topic": "Lesson on ACME Corp (Price mismatch)",
+    "lesson": "HUMAN CORRECTION LESSON for ACME Corp: On case VX-TEST-999, agent recommended 'APPLY_AMENDMENT', but human supervisor CORRECTED it with notes: 'Supervisor correction: Verify amendment effective date before auto-releasing payment.'. Future investigations must verify physical goods receipts and explicit approval before recommending resolution.",
+    "source_case_id": "VX-TEST-999",
+    "human_feedback_type": "HUMAN_CORRECTION",
+    "confidence_score": 0.95,
+    "created_at": "2026-09-29 18:38:21"
+  },
+  {
+    "lesson_id": "LES-1790687298",
+    "vendor_id": "VND-004",
+    "vendor_name": "Nexus Industrial Solutions",
+    "topic": "Lesson on Nexus Industrial Solutions (Quantity Mismatch)",
+    "lesson": "HUMAN CORRECTION LESSON for Nexus Industrial Solutions: On case VX-2044, agent recommended 'REQUEST_CORRECTION', but human supervisor CORRECTED it with notes: 'Confirmed partial delivery payment authorization for 80 received units.'. Future investigations must verify physical goods receipts and explicit approval before recommending resolution.",
+    "source_case_id": "VX-2044",
+    "human_feedback_type": "HUMAN_CORRECTION",
+    "confidence_score": 0.95,
+    "created_at": "2026-09-29 18:38:18"
+  },
+  {
+    "lesson_id": "LES-1790686871",
+    "vendor_id": "VND-001",
+    "vendor_name": "Global Supplies Ltd",
+    "topic": "Lesson on Global Supplies Ltd (None (Matching consistency))",
+    "lesson": "CONFIRMED RESOLUTION LESSON for Global Supplies Ltd: Payment approval on case VX-1001 confirmed that line-item verification and amendment validation was accurate. Retain this evidence-checking pattern.",
+    "source_case_id": "VX-1001",
+    "human_feedback_type": "HUMAN_APPROVAL",
+    "confidence_score": 0.95,
+    "created_at": "2026-09-29 18:31:11"
+  },
+  {
+    "lesson_id": "LES-1790686858",
+    "vendor_id": "VND-001",
+    "vendor_name": "Global Supplies Ltd",
+    "topic": "Lesson on Global Supplies Ltd (None (Matching consistency))",
+    "lesson": "CONFIRMED RESOLUTION LESSON for Global Supplies Ltd: Payment approval on case VX-1001 confirmed that line-item verification and amendment validation was accurate. Retain this evidence-checking pattern.",
+    "source_case_id": "VX-1001",
+    "human_feedback_type": "HUMAN_APPROVAL",
+    "confidence_score": 0.95,
+    "created_at": "2026-09-29 18:30:58"
+  },
+  {
+    "lesson_id": "LES-1790685843",
+    "vendor_id": "VND-002",
+    "vendor_name": "ACME Corp",
+    "topic": "Lesson on ACME Corp (Price mismatch)",
+    "lesson": "HUMAN CORRECTION LESSON for ACME Corp: On case VX-TEST-999, agent recommended 'APPLY_AMENDMENT', but human supervisor CORRECTED it with notes: 'Supervisor correction: Verify amendment effective date before auto-releasing payment.'. Future investigations must verify physical goods receipts and explicit approval before recommending resolution.",
+    "source_case_id": "VX-TEST-999",
+    "human_feedback_type": "HUMAN_CORRECTION",
+    "confidence_score": 0.95,
+    "created_at": "2026-09-29 18:14:03"
+  },
+  {
+    "lesson_id": "LES-1790685841",
+    "vendor_id": "VND-004",
+    "vendor_name": "Nexus Industrial Solutions",
+    "topic": "Lesson on Nexus Industrial Solutions (Quantity Mismatch)",
+    "lesson": "HUMAN CORRECTION LESSON for Nexus Industrial Solutions: On case VX-2044, agent recommended 'REQUEST_CORRECTION', but human supervisor CORRECTED it with notes: 'Confirmed partial delivery payment authorization for 80 received units.'. Future investigations must verify physical goods receipts and explicit approval before recommending resolution.",
+    "source_case_id": "VX-2044",
+    "human_feedback_type": "HUMAN_CORRECTION",
+    "confidence_score": 0.95,
+    "created_at": "2026-09-29 18:14:01"
+  },
+  {
+    "lesson_id": "LES-1790685784",
+    "vendor_id": "VND-002",
+    "vendor_name": "ACME Corp",
+    "topic": "Lesson on ACME Corp (Price mismatch)",
+    "lesson": "HUMAN CORRECTION LESSON for ACME Corp: On case VX-TEST-999, agent recommended 'APPLY_AMENDMENT', but human supervisor CORRECTED it with notes: 'Supervisor correction: Verify amendment effective date before auto-releasing payment.'. Future investigations must verify physical goods receipts and explicit approval before recommending resolution.",
+    "source_case_id": "VX-TEST-999",
+    "human_feedback_type": "HUMAN_CORRECTION",
+    "confidence_score": 0.95,
+    "created_at": "2026-09-29 18:13:04"
+  },
+  {
+    "lesson_id": "LES-1790685443",
+    "vendor_id": "VND-002",
+    "vendor_name": "ACME Corp",
+    "topic": "Lesson on ACME Corp (Price mismatch)",
+    "lesson": "HUMAN CORRECTION LESSON for ACME Corp: On case VX-TEST-999, agent recommended 'APPLY_AMENDMENT', but human supervisor CORRECTED it with notes: 'Supervisor correction: Verify amendment effective date before auto-releasing payment.'. Future investigations must verify physical goods receipts and explicit approval before recommending resolution.",
+    "source_case_id": "VX-TEST-999",
+    "human_feedback_type": "HUMAN_CORRECTION",
+    "confidence_score": 0.95,
+    "created_at": "2026-09-29 18:07:23"
+  },
+  {
+    "lesson_id": "LES-1790683006",
+    "vendor_id": "VND-002",
+    "vendor_name": "ACME Corp",
+    "topic": "Lesson on ACME Corp (Price mismatch)",
+    "lesson": "HUMAN CORRECTION LESSON for ACME Corp: On case VX-TEST-999, agent recommended 'APPLY_AMENDMENT', but human supervisor CORRECTED it with notes: 'Supervisor correction: Verify amendment effective date before auto-releasing payment.'. Future investigations must verify physical goods receipts and explicit approval before recommending resolution.",
+    "source_case_id": "VX-TEST-999",
+    "human_feedback_type": "HUMAN_CORRECTION",
+    "confidence_score": 0.95,
+    "created_at": "2026-09-29 17:26:46"
+  },
+  {
+    "lesson_id": "LES-1790676471",
+    "vendor_id": "VND-001",
+    "vendor_name": "Global Supplies Ltd",
+    "topic": "Lesson on Global Supplies Ltd (Matching consistency)",
+    "lesson": "CONFIRMED RESOLUTION LESSON for Global Supplies Ltd: Payment approval on case VX-1001 confirmed that line-item verification and amendment validation was accurate. Retain this evidence-checking pattern.",
+    "source_case_id": "VX-1001",
+    "human_feedback_type": "HUMAN_APPROVAL",
+    "confidence_score": 0.95,
+    "created_at": "2026-09-29 15:37:51"
+  },
+  {
+    "lesson_id": "LES-1790673926",
+    "vendor_id": "VND-001",
+    "vendor_name": "Global Supplies Ltd",
+    "topic": "Lesson on Global Supplies Ltd (Matching consistency)",
+    "lesson": "CONFIRMED RESOLUTION LESSON for Global Supplies Ltd: Payment approval on case VX-1001 confirmed that line-item verification and amendment validation was accurate. Retain this evidence-checking pattern.",
+    "source_case_id": "VX-1001",
+    "human_feedback_type": "HUMAN_APPROVAL",
+    "confidence_score": 0.95,
+    "created_at": "2026-09-29 14:55:26"
+  },
+  {
+    "lesson_id": "LES-101",
+    "vendor_id": "VND-002",
+    "vendor_name": "ACME Corp",
+    "topic": "Price Mismatch & Contract Amendments",
+    "lesson": "ACME Corp price increases on PO-2001 were backed by verified amendment AM-17. Future investigations should verify whether a specific approved amendment exists for the current PO before assuming price increases are legitimate.",
+    "source_case_id": "VX-0990",
+    "human_feedback_type": "APPROVAL_CONFIRMATION",
+    "confidence_score": 0.92,
+    "created_at": "2026-08-15 14:30:00"
+  },
+  {
+    "lesson_id": "LES-102",
+    "vendor_id": "VND-004",
+    "vendor_name": "Nexus Industrial Solutions",
+    "topic": "Partial Delivery vs Invoiced Quantity",
+    "lesson": "HUMAN CORRECTION LESSON: On previous case VX-1040 for Nexus Industrial, the agent recommended auto-approving payment based on vendor reliability, but human supervisor REJECTED and corrected it: 'Do not approve full payment on partial deliveries without physical receipt confirmation and explicit customer approval for partial holdback.'",
+    "source_case_id": "VX-1040",
+    "human_feedback_type": "HUMAN_CORRECTION",
+    "confidence_score": 0.98,
+    "created_at": "2026-09-01 11:20:00"
+  },
+  {
+    "lesson_id": "LES-103",
+    "vendor_id": "VND-005",
+    "vendor_name": "CyberTech Dynamics",
+    "topic": "Fraud Signal & Banking Changes",
+    "lesson": "Whenever vendor bank account details are modified shortly before or during an invoice price discrepancy, immediately halt automated resolution and route directly to FRAUD REVIEW. Never attempt auto-resolution on unverified banking updates.",
+    "source_case_id": "VX-0850",
+    "human_feedback_type": "SECURITY_POLICY",
+    "confidence_score": 1.0,
+    "created_at": "2026-07-20 16:45:00"
+  }
+]

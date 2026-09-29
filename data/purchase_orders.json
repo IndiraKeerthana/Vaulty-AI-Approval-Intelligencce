@@ -1,0 +1,116 @@
+[
+  {
+    "po_id": "PO-1001",
+    "vendor_id": "VND-001",
+    "vendor_name": "Global Supplies Ltd",
+    "po_date": "2026-09-01",
+    "currency": "INR",
+    "total_amount": 50000.0,
+    "line_items": [
+      {
+        "item_id": "ITM-901",
+        "description": "Standard Industrial Valves",
+        "ordered_quantity": 100,
+        "unit_price": 500.0,
+        "total": 50000.0
+      }
+    ],
+    "status": "APPROVED",
+    "approved_by": "Ramesh Kumar (Procurement Manager)"
+  },
+  {
+    "po_id": "PO-2001",
+    "vendor_id": "VND-002",
+    "vendor_name": "ACME Corp",
+    "po_date": "2026-09-02",
+    "currency": "INR",
+    "total_amount": 50000.0,
+    "line_items": [
+      {
+        "item_id": "ITM-102",
+        "description": "Heavy Duty Gaskets - Batch Q3",
+        "ordered_quantity": 100,
+        "unit_price": 500.0,
+        "total": 50000.0
+      }
+    ],
+    "status": "APPROVED",
+    "approved_by": "Anil Sharma (Senior Buyer)"
+  },
+  {
+    "po_id": "PO-2002",
+    "vendor_id": "VND-002",
+    "vendor_name": "ACME Corp",
+    "po_date": "2026-09-10",
+    "currency": "INR",
+    "total_amount": 50000.0,
+    "line_items": [
+      {
+        "item_id": "ITM-103",
+        "description": "Precision Bearing Assembly",
+        "ordered_quantity": 100,
+        "unit_price": 500.0,
+        "total": 50000.0
+      }
+    ],
+    "status": "APPROVED",
+    "approved_by": "Anil Sharma (Senior Buyer)"
+  },
+  {
+    "po_id": "PO-2044",
+    "vendor_id": "VND-004",
+    "vendor_name": "Nexus Industrial Solutions",
+    "po_date": "2026-09-05",
+    "currency": "INR",
+    "total_amount": 100000.0,
+    "line_items": [
+      {
+        "item_id": "ITM-404",
+        "description": "High-Pressure Hydraulic Pipes",
+        "ordered_quantity": 100,
+        "unit_price": 1000.0,
+        "total": 100000.0
+      }
+    ],
+    "status": "APPROVED",
+    "approved_by": "Priya Nair (Operations Head)"
+  },
+  {
+    "po_id": "PO-3005",
+    "vendor_id": "VND-005",
+    "vendor_name": "CyberTech Dynamics",
+    "po_date": "2026-09-12",
+    "currency": "INR",
+    "total_amount": 100000.0,
+    "line_items": [
+      {
+        "item_id": "ITM-505",
+        "description": "Industrial IoT Sensors",
+        "ordered_quantity": 100,
+        "unit_price": 1000.0,
+        "total": 100000.0
+      }
+    ],
+    "status": "APPROVED",
+    "approved_by": "Vikram Sethi (IT Director)"
+  },
+  {
+    "po_id": "PO-4001",
+    "vendor_id": "VND-006",
+    "vendor_name": "Starlight Logistics",
+    "po_date": "2026-09-08",
+    "currency": "INR",
+    "total_amount": 35000.0,
+    "line_items": [
+      {
+        "item_id": "ITM-601",
+        "description": "Freight & Handling Q3",
+        "ordered_quantity": 1,
+        "unit_price": 35000.0,
+        "total": 35000.0
+      }
+    ],
+    "status": "APPROVED",
+    "approved_by": "Ramesh Kumar (Procurement Manager)"
+  }
+]

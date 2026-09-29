@@ -1,0 +1,42 @@
+[
+  {
+    "contract_id": "CTR-101",
+    "vendor_id": "VND-001",
+    "title": "Master Supply Agreement - Global Supplies",
+    "start_date": "2024-01-01",
+    "end_date": "2027-12-31",
+    "standard_rate": 500.0,
+    "payment_terms": "Net 30",
+    "price_adjustment_clause": "Prices fixed unless amendment signed by Procurement Director."
+  },
+  {
+    "contract_id": "CTR-202",
+    "vendor_id": "VND-002",
+    "title": "Components & Parts Agreement - ACME Corp",
+    "start_date": "2023-06-01",
+    "end_date": "2026-12-31",
+    "standard_rate": 500.0,
+    "payment_terms": "Net 45",
+    "price_adjustment_clause": "Vendor may apply index-linked adjustments upon submission and approval of signed pricing amendment."
+  },
+  {
+    "contract_id": "CTR-404",
+    "vendor_id": "VND-004",
+    "title": "Hydraulic Equipment Supply - Nexus Industrial",
+    "start_date": "2024-03-01",
+    "end_date": "2027-03-01",
+    "standard_rate": 1000.0,
+    "payment_terms": "Net 30",
+    "price_adjustment_clause": "Partial deliveries payable only upon verified receipt of partial quantity."
+  },
+  {
+    "contract_id": "CTR-505",
+    "vendor_id": "VND-005",
+    "title": "IoT Hardware Provisioning - CyberTech Dynamics",
+    "start_date": "2025-01-01",
+    "end_date": "2026-12-31",
+    "standard_rate": 1000.0,
+    "payment_terms": "Net 15",
+    "price_adjustment_clause": "All rate changes require 60 days advance notice and security verification."
+  }
+]

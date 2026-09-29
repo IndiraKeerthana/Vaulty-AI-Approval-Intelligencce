@@ -1,0 +1,99 @@
+[
+  {
+    "receipt_id": "REC-1001",
+    "po_id": "PO-1001",
+    "received_date": "2026-09-12",
+    "received_by": "Warehouse Bay 3",
+    "line_items": [
+      {
+        "item_id": "ITM-901",
+        "description": "Standard Industrial Valves",
+        "received_quantity": 100,
+        "accepted_quantity": 100,
+        "rejected_quantity": 0
+      }
+    ],
+    "status": "FULL_DELIVERY"
+  },
+  {
+    "receipt_id": "REC-2001",
+    "po_id": "PO-2001",
+    "received_date": "2026-09-15",
+    "received_by": "Warehouse Bay 1",
+    "line_items": [
+      {
+        "item_id": "ITM-102",
+        "description": "Heavy Duty Gaskets - Batch Q3",
+        "received_quantity": 100,
+        "accepted_quantity": 100,
+        "rejected_quantity": 0
+      }
+    ],
+    "status": "FULL_DELIVERY"
+  },
+  {
+    "receipt_id": "REC-2002",
+    "po_id": "PO-2002",
+    "received_date": "2026-09-22",
+    "received_by": "Warehouse Bay 1",
+    "line_items": [
+      {
+        "item_id": "ITM-103",
+        "description": "Precision Bearing Assembly",
+        "received_quantity": 100,
+        "accepted_quantity": 100,
+        "rejected_quantity": 0
+      }
+    ],
+    "status": "FULL_DELIVERY"
+  },
+  {
+    "receipt_id": "REC-2044",
+    "po_id": "PO-2044",
+    "received_date": "2026-09-18",
+    "received_by": "Warehouse Bay 4",
+    "line_items": [
+      {
+        "item_id": "ITM-404",
+        "description": "High-Pressure Hydraulic Pipes",
+        "received_quantity": 80,
+        "accepted_quantity": 80,
+        "rejected_quantity": 0,
+        "notes": "Partial shipment received. 20 units backordered by vendor."
+      }
+    ],
+    "status": "PARTIAL_DELIVERY"
+  },
+  {
+    "receipt_id": "REC-3005",
+    "po_id": "PO-3005",
+    "received_date": "2026-09-24",
+    "received_by": "IT Goods Receiving",
+    "line_items": [
+      {
+        "item_id": "ITM-505",
+        "description": "Industrial IoT Sensors",
+        "received_quantity": 100,
+        "accepted_quantity": 100,
+        "rejected_quantity": 0
+      }
+    ],
+    "status": "FULL_DELIVERY"
+  },
+  {
+    "receipt_id": "REC-4001",
+    "po_id": "PO-4001",
+    "received_date": "2026-09-10",
+    "received_by": "Logistics Desk",
+    "line_items": [
+      {
+        "item_id": "ITM-601",
+        "description": "Freight & Handling Q3",
+        "received_quantity": 1,
+        "accepted_quantity": 1,
+        "rejected_quantity": 0
+      }
+    ],
+    "status": "COMPLETED"
+  }
+]

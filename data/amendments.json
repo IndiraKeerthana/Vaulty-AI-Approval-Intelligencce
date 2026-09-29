@@ -1,0 +1,14 @@
+[
+  {
+    "amendment_id": "AM-17",
+    "vendor_id": "VND-002",
+    "po_id": "PO-2001",
+    "effective_date": "2026-09-14",
+    "original_unit_price": 500.0,
+    "amended_unit_price": 550.0,
+    "reason": "Q3 Raw Material Surcharge Adjustment approved by Sourcing Team",
+    "approved_by": "Ramesh Kumar (Procurement Director)",
+    "status": "APPROVED",
+    "doc_ref": "DOC-AM17-ACME-2026.pdf"
+  }
+]

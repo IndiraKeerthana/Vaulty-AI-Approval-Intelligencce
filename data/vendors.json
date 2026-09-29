@@ -1,0 +1,62 @@
+[
+  {
+    "vendor_id": "VND-001",
+    "vendor_name": "Global Supplies Ltd",
+    "contract_id": "CTR-101",
+    "bank_account": "IN89372648109283",
+    "banking_details_updated_at": "2024-01-15",
+    "risk_rating": "LOW",
+    "status": "ACTIVE",
+    "total_invoices_processed": 42
+  },
+  {
+    "vendor_id": "VND-002",
+    "vendor_name": "ACME Corp",
+    "contract_id": "CTR-202",
+    "bank_account": "IN11223344556677",
+    "banking_details_updated_at": "2023-06-10",
+    "risk_rating": "MEDIUM",
+    "status": "ACTIVE",
+    "total_invoices_processed": 88
+  },
+  {
+    "vendor_id": "VND-004",
+    "vendor_name": "Nexus Industrial Solutions",
+    "contract_id": "CTR-404",
+    "bank_account": "IN99887766554433",
+    "banking_details_updated_at": "2024-03-20",
+    "risk_rating": "MEDIUM",
+    "status": "ACTIVE",
+    "total_invoices_processed": 19
+  },
+  {
+    "vendor_id": "VND-005",
+    "vendor_name": "CyberTech Dynamics",
+    "contract_id": "CTR-505",
+    "bank_account": "IN99900011122299",
+    "banking_details_updated_at": "2026-09-26",
+    "risk_rating": "HIGH",
+    "status": "FLAGGED",
+    "total_invoices_processed": 3
+  },
+  {
+    "vendor_id": "VND-006",
+    "vendor_name": "Starlight Logistics",
+    "contract_id": "CTR-606",
+    "bank_account": "IN44332211009988",
+    "banking_details_updated_at": "2025-02-14",
+    "risk_rating": "LOW",
+    "status": "ACTIVE",
+    "total_invoices_processed": 115
+  },
+  {
+    "vendor_id": "VND-007",
+    "vendor_name": "Vertex Media",
+    "contract_id": "",
+    "bank_account": "IN55667788990011",
+    "banking_details_updated_at": "2026-08-01",
+    "risk_rating": "MEDIUM",
+    "status": "NEW_VENDOR",
+    "total_invoices_processed": 1
+  }
+]

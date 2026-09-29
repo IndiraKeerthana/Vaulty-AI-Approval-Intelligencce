@@ -1,0 +1,142 @@
+[
+  {
+    "invoice_id": "INV-1001",
+    "vendor_id": "VND-001",
+    "vendor_name": "Global Supplies Ltd",
+    "po_id": "PO-1001",
+    "invoice_date": "2026-09-15",
+    "currency": "INR",
+    "total_amount": 50000.0,
+    "line_items": [
+      {
+        "item_id": "ITM-901",
+        "description": "Standard Industrial Valves",
+        "quantity": 100,
+        "unit_price": 500.0,
+        "total": 50000.0
+      }
+    ],
+    "bank_account": "IN89372648109283",
+    "notes": "Standard monthly delivery"
+  },
+  {
+    "invoice_id": "INV-2001",
+    "vendor_id": "VND-002",
+    "vendor_name": "ACME Corp",
+    "po_id": "PO-2001",
+    "invoice_date": "2026-09-18",
+    "currency": "INR",
+    "total_amount": 55000.0,
+    "line_items": [
+      {
+        "item_id": "ITM-102",
+        "description": "Heavy Duty Gaskets - Batch Q3",
+        "quantity": 100,
+        "unit_price": 550.0,
+        "total": 55000.0
+      }
+    ],
+    "bank_account": "IN11223344556677",
+    "notes": "Price per agreed rate update"
+  },
+  {
+    "invoice_id": "INV-2002",
+    "vendor_id": "VND-002",
+    "vendor_name": "ACME Corp",
+    "po_id": "PO-2002",
+    "invoice_date": "2026-09-25",
+    "currency": "INR",
+    "total_amount": 55000.0,
+    "line_items": [
+      {
+        "item_id": "ITM-103",
+        "description": "Precision Bearing Assembly",
+        "quantity": 100,
+        "unit_price": 550.0,
+        "total": 55000.0
+      }
+    ],
+    "bank_account": "IN11223344556677",
+    "notes": "Standard supply shipment"
+  },
+  {
+    "invoice_id": "INV-2044",
+    "vendor_id": "VND-004",
+    "vendor_name": "Nexus Industrial Solutions",
+    "po_id": "PO-2044",
+    "invoice_date": "2026-09-20",
+    "currency": "INR",
+    "total_amount": 100000.0,
+    "line_items": [
+      {
+        "item_id": "ITM-404",
+        "description": "High-Pressure Hydraulic Pipes",
+        "quantity": 100,
+        "unit_price": 1000.0,
+        "total": 100000.0
+      }
+    ],
+    "bank_account": "IN99887766554433",
+    "notes": "Full order billing as per purchase agreement"
+  },
+  {
+    "invoice_id": "INV-3005",
+    "vendor_id": "VND-005",
+    "vendor_name": "CyberTech Dynamics",
+    "po_id": "PO-3005",
+    "invoice_date": "2026-09-26",
+    "currency": "INR",
+    "total_amount": 120000.0,
+    "line_items": [
+      {
+        "item_id": "ITM-505",
+        "description": "Industrial IoT Sensors",
+        "quantity": 100,
+        "unit_price": 1200.0,
+        "total": 120000.0
+      }
+    ],
+    "bank_account": "IN99900011122299",
+    "notes": "Urgent payment requested to new offshore account"
+  },
+  {
+    "invoice_id": "INV-4001",
+    "vendor_id": "VND-006",
+    "vendor_name": "Starlight Logistics",
+    "po_id": "PO-4001",
+    "invoice_date": "2026-09-22",
+    "currency": "INR",
+    "total_amount": 35000.0,
+    "line_items": [
+      {
+        "item_id": "ITM-601",
+        "description": "Freight & Handling Q3",
+        "quantity": 1,
+        "unit_price": 35000.0,
+        "total": 35000.0
+      }
+    ],
+    "bank_account": "IN44332211009988",
+    "notes": "Duplicate submission of September freight bill"
+  },
+  {
+    "invoice_id": "INV-5001",
+    "vendor_id": "VND-007",
+    "vendor_name": "Vertex Media",
+    "po_id": "",
+    "invoice_date": "2026-09-24",
+    "currency": "INR",
+    "total_amount": 85000.0,
+    "line_items": [
+      {
+        "item_id": "ITM-701",
+        "description": "Q3 Corporate Branding Campaign",
+        "quantity": 1,
+        "unit_price": 85000.0,
+        "total": 85000.0
+      }
+    ],
+    "bank_account": "IN55667788990011",
+    "notes": "Direct invoice sent without PO reference"
+  }
+]
