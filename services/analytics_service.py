@@ -49,8 +49,8 @@ class AnalyticsService:
         # 2. Pending discrepancies (all unresolved discrepancy cases requiring action)
         pending_discrepancies = [c for c in cases if c.get("status") not in ("RESOLVED", "APPROVED") and normalize_discrepancy_type(c.get("discrepancy_type", "")) != "Matching Consistency (Clean)"]
         
-        # 3. Resolved discrepancies (resolved discrepancy cases, not clean ones)
-        resolved_discrepancies = [c for c in cases if c.get("status") in ("RESOLVED", "APPROVED") and normalize_discrepancy_type(c.get("discrepancy_type", "")) != "Matching Consistency (Clean)"]
+        # 3. Resolved cases (all cases whose CURRENT persisted state is resolved/approved/completed)
+        resolved_cases = [c for c in cases if str(c.get("status", "")).upper() in ("RESOLVED", "APPROVED", "COMPLETED")]
         
         # 4. Extra amount identified
         extra_amount = self.get_extra_amount_identified()
@@ -58,7 +58,8 @@ class AnalyticsService:
         return {
             "cases_needing_approval_count": len(needing_approval),
             "needs_investigation_count": len(pending_discrepancies),
-            "resolved_discrepancies_count": len(resolved_discrepancies),
+            "resolved_discrepancies_count": len(resolved_cases),
+            "resolved_count": len(resolved_cases),
             "extra_amount_identified": extra_amount,
             "total_cases_count": len(cases)
         }
@@ -251,23 +252,25 @@ class AnalyticsService:
 
             if norm_type != "Matching Consistency (Clean)":
                 summary["total_discrepancies"] += 1
-                if status != "RESOLVED":
+                if status not in ("RESOLVED", "APPROVED", "COMPLETED"):
                     summary["total_amount_under_review"] += amount
 
-            if status == "AWAITING_HUMAN_PAYMENT_RELEASE":
+            s_upper = str(status).upper()
+            if s_upper in ("AWAITING_HUMAN_PAYMENT_RELEASE",):
                 summary["needs_approval"] += 1
-            elif status == "RESOLVED":
+            elif s_upper in ("RESOLVED", "APPROVED", "COMPLETED"):
                 summary["approved"] += 1
-            elif status == "CORRECTION REQUESTED":
+            elif s_upper in ("CORRECTION REQUESTED", "SENT_BACK"):
                 summary["sent_back"] += 1
-            elif status == "PENDING VENDOR RESPONSE":
+            elif any(k in s_upper for k in ("PENDING VENDOR", "QUERY", "VENDOR_QUERY")):
                 summary["vendor_query"] += 1
-            elif status == "FRAUD REVIEW":
+            elif s_upper in ("FRAUD REVIEW", "FRAUD"):
                 summary["fraud_review"] += 1
-            elif status == "ESCALATED TO PROCUREMENT":
+            elif any(k in s_upper for k in ("HOLD", "HELD", "PROCUREMENT", "ESCALAT")):
                 summary["on_hold"] += 1
 
         summary["total_amount_under_review"] = round(summary["total_amount_under_review"], 2)
+        summary["on_hold_query"] = summary["on_hold"] + summary["vendor_query"]
         return summary
 
     def get_approval_history(self) -> list:

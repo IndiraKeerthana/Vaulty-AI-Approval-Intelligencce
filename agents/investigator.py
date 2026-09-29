@@ -206,7 +206,10 @@ Synthesize your investigation into a strict JSON object:
                 memory_verdict = "NOT_APPLICABLE"
                 memory_influence = "Routine clear case."
 
-            reasoning_summary = f"Investigation completed for {invoice_id}. Exception: {exception_type}. Recommended Action: {recommended_action}."
+            if exception_type == "None" or recommended_action in ("CLEAR", "APPROVE", "CONTINUE_WITH_PAYMENT"):
+                reasoning_summary = "No issues found. The invoice matches the available purchase order and delivery evidence."
+            else:
+                reasoning_summary = f"Investigation completed for {invoice_id}. Exception: {exception_type}. Recommended Action: {recommended_action}."
             past_experience = relevant_memory[0] if relevant_memory else "Checking organizational database for previous vendor cases..."
             curr_evid_summary = "; ".join(current_evidence)
 

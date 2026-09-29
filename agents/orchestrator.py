@@ -34,7 +34,7 @@ class OrchestratorAgent:
             return output
 
         # Check Clear or Resolved exceptions eligible for payment release
-        if triage_res.get("decision") == "CLEAR" or action_taken == "APPLY_CONTRACT_AMENDMENT":
+        if triage_res.get("decision") == "CLEAR" or action_taken in ("APPLY_CONTRACT_AMENDMENT", "APPROVE_PAYMENT_RELEASE") or recommended_action in ("CLEAR", "APPROVE", "APPROVE_PAYMENT_RELEASE"):
             output = {
                 "workflow_approved": True,
                 "requires_human_payment_approval": True,  # HARD HUMAN GATE

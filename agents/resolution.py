@@ -67,7 +67,13 @@ Return JSON:
         chosen_action = llm_res.get("chosen_action", recommended_action) or recommended_action
 
         # Dispatch write tools dynamically
-        if chosen_action == "APPLY_AMENDMENT":
+        if chosen_action in ("CLEAR", "APPROVE", "APPROVE_PAYMENT_RELEASE", "CONTINUE_WITH_PAYMENT"):
+            summary = "Everything looks good. You can continue with the payment."
+            action_taken = "APPROVE_PAYMENT_RELEASE"
+            close_res = close_as_resolved(cid, summary)
+            result_details = close_res
+
+        elif chosen_action == "APPLY_AMENDMENT":
             amendment_id = verified_amendment_id or "AM-VERIFIED"
             link_res = apply_contract_amendment_reference(invoice_id, amendment_id)
             close_res = close_as_resolved(cid, f"Resolved via verified contract amendment {amendment_id}.")
@@ -99,7 +105,7 @@ Return JSON:
             action_taken = "ESCALATE_TO_PROCUREMENT"
             result_details = esc_res
 
-        status = update_exception_status(cid, "AWAITING_HUMAN_PAYMENT_RELEASE" if chosen_action == "APPLY_AMENDMENT" else "INVESTIGATING", summary).get("status")
+        status = update_exception_status(cid, "AWAITING_HUMAN_PAYMENT_RELEASE" if chosen_action in ("APPLY_AMENDMENT", "CLEAR", "APPROVE", "APPROVE_PAYMENT_RELEASE") else "INVESTIGATING", summary).get("status")
 
         output = {
             "action_taken": action_taken,

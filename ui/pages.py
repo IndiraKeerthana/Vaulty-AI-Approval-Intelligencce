@@ -171,7 +171,7 @@ def render_home_page():
     with c2:
         render_stat_tile("Pending discrepancies", str(needs_inv_cnt), "Unresolved exceptions", "#2563eb")
     with c3:
-        render_stat_tile("Resolved discrepancies", str(metrics.get("resolved_discrepancies_count", 0)), "Verified and closed", "#16a34a")
+        render_stat_tile("RESOLVED", str(metrics.get("resolved_count", metrics.get("resolved_discrepancies_count", 0))), "Verified and closed", "#16a34a")
     with c4:
         extra_amt = metrics.get("extra_amount_identified", 0.0)
         render_stat_tile("Extra amount identified", f"₹{extra_amt:,.0f}", "Total monetary overbilling", "#7c3aed")
@@ -549,7 +549,23 @@ def render_case_detail_view(case_id: str):
         res_res = pipe_res.get("stage_6_resolution", {})
         orch_res = pipe_res.get("stage_7_human_gate", {})
         mem_analysis = inv_res.get("memory_influence_analysis", {})
-        findings_summary = inv_res.get("reasoning_summary") or "Investigation completed. Evidence reviewed against PO and contract terms."
+
+        rec_act = inv_res.get("recommended_action", "")
+        action_taken = res_res.get("action_taken", "")
+        disc_type = inv_res.get("discrepancy_type") or inv_res.get("exception_type") or issue
+        norm_disc = normalize_discrepancy_type(disc_type)
+
+        is_clean_case = (
+            rec_act.upper() in ("CLEAR", "APPROVE", "APPROVE_PAYMENT_RELEASE", "CONTINUE_WITH_PAYMENT") or
+            action_taken.upper() in ("APPROVE_PAYMENT_RELEASE", "CLEAR", "APPROVE", "CONTINUE_WITH_PAYMENT") or
+            norm_disc.upper() in ("NONE", "MATCHING CONSISTENCY (CLEAN)", "CLEAN", "NO DISCREPANCY") or
+            (pipe_res.get("stage_2_triage", {}).get("decision") == "CLEAR" and rec_act.upper() not in ("DRAFT_VENDOR_QUERY", "REQUEST_CORRECTION", "FLAG_FRAUD", "RESOLVE_DUPLICATE", "ESCALATE_PROCUREMENT"))
+        )
+
+        if is_clean_case:
+            findings_summary = "No issues found. The invoice matches the available purchase order and delivery evidence."
+        else:
+            findings_summary = inv_res.get("reasoning_summary") or "Investigation completed. Evidence reviewed against PO and contract terms."
 
         st.markdown(f"""
         <div class="vaulty-card">
@@ -563,6 +579,8 @@ def render_case_detail_view(case_id: str):
         res_res = {}
         orch_res = {}
         mem_analysis = {}
+        is_clean_case = False
+        rec_act = ""
 
     # --------------------------------------------------
     # SECTION 3 — VAULTY REMEMBERED (SIGNATURE VIOLET PANEL)
@@ -575,7 +593,10 @@ def render_case_detail_view(case_id: str):
     st.markdown("### WHAT THIS MEANS")
 
     if pipe_res:
-        means_conclusion = res_res.get("summary") or "Evidence verification completed."
+        if is_clean_case:
+            means_conclusion = "Everything looks good. You can continue with the payment."
+        else:
+            means_conclusion = res_res.get("summary") or "Evidence verification completed."
         st.markdown(f"""
         <div class="vaulty-card" style="border-left: 4px solid #2563eb;">
             <div style="font-size: 14px; font-weight: 700; color: #0f172a;">Factual Conclusion</div>
@@ -594,13 +615,17 @@ def render_case_detail_view(case_id: str):
     # --------------------------------------------------
     st.markdown("### RECOMMENDED ACTION")
 
-    if pipe_res and inv_res.get("recommended_action"):
-        rec_act = inv_res.get("recommended_action")
+    if pipe_res and (rec_act or is_clean_case):
+        if is_clean_case:
+            rec_title = "Continue with payment"
+        else:
+            rec_title = rec_act.replace('_', ' ').title()
+
         st.markdown(f"""
         <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #16a34a; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
             <div style="font-size: 11px; font-weight: 700; color: #166534; text-transform: uppercase;">Recommended Action</div>
             <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 800; color: #14532d; margin-top: 2px;">
-                {rec_act.replace('_', ' ').title()}
+                {rec_title}
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -608,20 +633,54 @@ def render_case_detail_view(case_id: str):
         st.info("Recommendation will be generated upon running the investigation pipeline.")
 
     # --------------------------------------------------
-    # SECTION 6 — THIS NEEDS YOUR INPUT
+    # SECTION 6 — THIS NEEDS YOUR INPUT / POST-DECISION DISPLAY
     # --------------------------------------------------
-    st.markdown("---")
-    st.markdown("### THIS NEEDS YOUR INPUT")
+    if status in ("RESOLVED", "APPROVED"):
+        st.markdown("""
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #16a34a; border-radius: 8px; padding: 18px 20px; margin-bottom: 16px;">
+            <div style="font-size: 16px; font-weight: 800; color: #166534; margin-bottom: 4px;">
+                PAYMENT APPROVED SUCCESSFULLY
+            </div>
+            <div style="font-size: 13.5px; color: #15803d; margin-bottom: 8px;">
+                Payment release has been approved by the authorized reviewer.
+            </div>
+            <div style="font-size: 12.5px; color: #166534; font-weight: 600;">
+                Status: APPROVED &nbsp;|&nbsp; Resolution: Payment release approved
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    if status in ("AWAITING_HUMAN_PAYMENT_RELEASE", "UNPROCESSED", "INVESTIGATING", "OPEN") or orch_res.get("requires_human_payment_approval"):
+    elif status in ("ON_HOLD", "HELD", "ON HOLD", "PENDING VENDOR RESPONSE", "CORRECTION REQUESTED", "ESCALATED TO PROCUREMENT"):
         st.markdown("""
         <div style="background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #d97706; border-radius: 8px; padding: 18px 20px; margin-bottom: 16px;">
-            <div style="font-size: 15px; font-weight: 800; color: #92400e;">
-                HUMAN SIGN-OFF REQUIRED FOR PAYMENT RELEASE
+            <div style="font-size: 16px; font-weight: 800; color: #92400e; margin-bottom: 4px;">
+                PAYMENT ON HOLD
             </div>
-            <div style="font-size: 13px; color: #78350f; margin-top: 4px;">
-                Vaulty has reviewed current evidence and past experience. No payment is released automatically.<br/>
-                <strong>Your explicit human approval or decision is required to proceed.</strong>
+            <div style="font-size: 13.5px; color: #78350f; margin-bottom: 8px;">
+                Payment release has been placed on hold pending further review.
+            </div>
+            <div style="font-size: 12.5px; color: #92400e; font-weight: 600;">
+                Status: ON HOLD &nbsp;|&nbsp; Resolution: Payment release held
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    elif status == "FRAUD REVIEW" or orch_res.get("requires_human_fraud_review"):
+        st.error("THIS CASE IS PLACED ON FRAUD REVIEW. ROUTED TO FRAUD AUDIT TEAM.")
+
+    else:
+        st.markdown("---")
+        st.markdown("### THIS NEEDS YOUR INPUT")
+
+        if is_clean_case:
+            gate_body = "Payment is ready for your approval."
+        else:
+            gate_body = "Vaulty has reviewed current evidence and past experience. No payment is released automatically.<br/><strong>Your explicit human approval or decision is required to proceed.</strong>"
+
+        st.markdown(f"""
+        <div style="background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #d97706; border-radius: 8px; padding: 18px 20px; margin-bottom: 16px;">
+            <div style="font-size: 13px; color: #78350f;">
+                {gate_body}
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -640,7 +699,6 @@ def render_case_detail_view(case_id: str):
                     human_notes="Payment release authorized after evidence verification."
                 )
                 st.session_state[f"lesson_saved_{case_id}"] = ref_res
-                st.success("Payment Approved! Lesson saved to organizational memory.")
                 st.rerun()
 
         with col_rej:
@@ -657,35 +715,7 @@ def render_case_detail_view(case_id: str):
                     human_notes=notes_input
                 )
                 st.session_state[f"lesson_saved_{case_id}"] = ref_res
-                st.warning("Action saved! Vaulty learned from your feedback for future investigations.")
                 st.rerun()
-
-    elif status in ("RESOLVED", "APPROVED"):
-        st.markdown("""
-        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #16a34a; border-radius: 8px; padding: 18px 20px; margin-bottom: 16px;">
-            <div style="font-size: 15px; font-weight: 800; color: #166534;">
-                ✓ PAYMENT RELEASE APPROVED
-            </div>
-            <div style="font-size: 13px; color: #15803d; margin-top: 4px;">
-                This exception case has been reviewed and approved by Finance Management. Payment release is authorized.
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    elif status in ("ON_HOLD", "PENDING VENDOR RESPONSE", "CORRECTION REQUESTED"):
-        st.markdown(f"""
-        <div style="background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #d97706; border-radius: 8px; padding: 18px 20px; margin-bottom: 16px;">
-            <div style="font-size: 15px; font-weight: 800; color: #92400e;">
-                ⏸ INVOICE PLACED ON HOLD ({status})
-            </div>
-            <div style="font-size: 13px; color: #78350f; margin-top: 4px;">
-                Payment release is suspended pending vendor response or invoice correction.
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    elif status == "FRAUD REVIEW" or orch_res.get("requires_human_fraud_review"):
-        st.error("THIS CASE IS PLACED ON FRAUD REVIEW. ROUTED TO FRAUD AUDIT TEAM.")
-    else:
-        st.info(f"Case Status: {status}")
 
     # --------------------------------------------------
     # SECTION 7 — VAULTY LEARNED FROM THIS CASE

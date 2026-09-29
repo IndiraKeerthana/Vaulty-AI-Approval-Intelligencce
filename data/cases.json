@@ -6,11 +6,11 @@
     "vendor_name": "Global Supplies Ltd",
     "amount": 50000.0,
     "discrepancy_type": "None (Matching consistency)",
-    "status": "INVESTIGATING",
+    "status": "RESOLVED",
     "risk_level": "Low",
-    "last_action": "Case escalated to Procurement Manager.",
+    "last_action": "Payment release approved by Finance Manager.",
     "created_at": "2026-09-28 09:00:00",
-    "updated_at": "2026-09-29 21:31:39",
+    "updated_at": "2026-09-29 22:20:00",
     "po_id": "PO-1001"
   },
   {
@@ -20,11 +20,11 @@
     "vendor_name": "ACME Corp",
     "amount": 55000.0,
     "discrepancy_type": "Price mismatch (\u20b9550 vs \u20b9500 PO)",
-    "status": "AWAITING_HUMAN_PAYMENT_RELEASE",
+    "status": "RESOLVED",
     "risk_level": "Medium",
-    "last_action": "Linked approved amendment AM-17. Exception verified and ready for payment release.",
+    "last_action": "Payment release approved by Finance Manager.",
     "created_at": "2026-09-28 09:15:00",
-    "updated_at": "2026-09-29 21:54:00",
+    "updated_at": "2026-09-29 22:34:07",
     "po_id": "PO-2001"
   },
   {
@@ -34,11 +34,11 @@
     "vendor_name": "ACME Corp",
     "amount": 55000.0,
     "discrepancy_type": "Price mismatch (\u20b9550 vs \u20b9500 PO)",
-    "status": "INVESTIGATING",
+    "status": "ON_HOLD",
     "risk_level": "Medium",
-    "last_action": "Drafted vendor query regarding rate discrepancy. Invoice placed on PENDING VENDOR RESPONSE.",
+    "last_action": "Payment held: Verify receipt before releasing payment.",
     "created_at": "2026-09-28 09:30:00",
-    "updated_at": "2026-09-29 21:49:10",
+    "updated_at": "2026-09-29 22:39:53",
     "po_id": "PO-2002"
   },
   {
@@ -66,7 +66,7 @@
     "risk_level": "Critical",
     "last_action": "Investigation completed for INV-3005. Exception: Potential fraud signal. Recommended Action: FLAG_FRAUD.",
     "created_at": "2026-09-28 10:00:00",
-    "updated_at": "2026-09-29 20:13:54",
+    "updated_at": "2026-09-29 22:21:09",
     "po_id": "PO-3005"
   },
   {
@@ -81,7 +81,7 @@
     "last_action": "Pending Triage",
     "created_at": "2026-09-28 10:15:00",
     "po_id": "PO-4001",
-    "updated_at": "2026-09-29 21:49:12"
+    "updated_at": "2026-09-29 22:30:48"
   },
   {
     "case_id": "VX-5001",
