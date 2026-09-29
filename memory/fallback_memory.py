@@ -42,25 +42,31 @@ class MemoryManager:
 
         # Fallback Local Recall logic: Conceptual reasoning over stored JSON lessons
         all_lessons = self.get_all_lessons()
-        query_terms = set(query.lower().split())
+        query_terms = set(query.lower().split()) if query else set()
         scored_lessons = []
 
         for item in all_lessons:
-            score = 0
-            # Vendor exact match boost
-            if vendor_id and item.get("vendor_id") == vendor_id:
-                score += 5
+            if vendor_id and item.get("vendor_id") != vendor_id:
+                continue
 
-            # Textual and conceptual keyword matching
+            match_score = 0
+            if vendor_id and item.get("vendor_id") == vendor_id:
+                match_score += 5
+
             lesson_text = (item.get("lesson", "") + " " + item.get("topic", "") + " " + item.get("vendor_name", "")).lower()
+            query_matched = False
             for term in query_terms:
                 if len(term) > 3 and term in lesson_text:
-                    score += 2
+                    match_score += 2
+                    query_matched = True
 
-            # Boost human corrections and security policies
+            if query_terms and not query_matched and not (vendor_id and item.get("vendor_id") == vendor_id):
+                continue
+
+            score = match_score
             if item.get("human_feedback_type") == "HUMAN_CORRECTION":
                 score += 3
-            if item.get("human_feedback_type") == "SECURITY_POLICY":
+            elif item.get("human_feedback_type") == "SECURITY_POLICY":
                 score += 2
 
             if score > 0:

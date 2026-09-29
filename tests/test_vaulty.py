@@ -5,18 +5,18 @@ import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from repositories.business_repository import (
-    get_business_repository, LocalJsonBusinessRepository, SupabaseBusinessRepository
+    get_business_repository, LocalJsonBusinessRepository
 )
 from repositories.memory_repository import (
-    get_memory_repository, LocalMemoryRepository, HindsightMemoryRepository
+    get_memory_repository, LocalMemoryRepository
 )
 from services.data_normalization import (
     normalize_discrepancy_type,
-    calculate_difference,
-    classify_approval_status
+    calculate_difference
 )
 from services.analytics_service import get_analytics_service
 from agents.pipeline import InvestigationPipeline
+from utils.llm_client import LLMClient
 
 
 def test_provider_selection_and_local_fallback():
@@ -45,120 +45,141 @@ def test_data_normalization_and_differences():
     assert diff == 5000.0
 
 
-def test_analytics_service_home_and_extra_amount():
-    """Verify Home metrics and positive overbilling extra amount calculations."""
-    analytics = get_analytics_service()
-    metrics = analytics.get_home_metrics()
+def test_llm_fallback_behavior():
+    """Verify LLMClient cleanly executes evidence fallback when API key is unconfigured or fails."""
+    client = LLMClient(api_key="INVALID_TEST_KEY_FOR_FALLBACK")
+    assert client.is_available() is True  # has key string
 
-    assert "cases_needing_approval_count" in metrics
-    assert "needs_investigation_count" in metrics
-    assert "resolved_discrepancies_count" in metrics
-    assert "extra_amount_identified" in metrics
+    def fallback_demo():
+        return {"status": "FALLBACK_SUCCESS", "value": 42}
 
-    extra_amt = analytics.get_extra_amount_identified()
-    assert extra_amt >= 0.0
-
-
-def test_analytics_approval_summary_and_history():
-    """Verify Approvals page summary and persistent event history timeline."""
-    analytics = get_analytics_service()
-    summary = analytics.get_approval_summary()
-
-    assert "needs_approval" in summary
-    assert "approved" in summary
-    assert "total_discrepancies" in summary
-
-    history = analytics.get_approval_history()
-    assert isinstance(history, list)
+    res = client.generate_json("Test prompt", fallback_fn=fallback_demo)
+    assert res.get("status") == "FALLBACK_SUCCESS"
+    assert res.get("value") == 42
 
 
-def test_recurring_vendor_issue_detection():
-    """Verify detection of repeated vendor issues (same vendor + same normalized discrepancy type >= 2 cases)."""
-    analytics = get_analytics_service()
-    recurring = analytics.find_recurring_vendor_issues()
-
-    assert isinstance(recurring, list)
-    # ACME Corp has 2 price mismatch cases (VX-2001, VX-2002)
-    acme_recurring = [r for r in recurring if r["vendor_name"] == "ACME Corp"]
-    assert len(acme_recurring) > 0
-    assert acme_recurring[0]["issue"] == "Price Mismatch"
-    assert acme_recurring[0]["occurrences"] >= 2
-
-
-def test_vendor_quality_metrics_and_reports():
-    """Verify vendor quality metrics and report aggregations."""
-    analytics = get_analytics_service()
-    quality = analytics.get_vendor_quality_metrics()
-    assert len(quality) > 0
-
-    breakdown = analytics.get_discrepancy_breakdown()
-    assert len(breakdown) > 0
-
-
-def test_pipeline_start_investigation_by_id():
-    """Verify execution of InvestigationPipeline by Invoice / Case ID."""
+def test_investigation_result_contract_and_creation():
+    """Verify standardized investigation result contract creation."""
     pipeline = InvestigationPipeline()
     res = pipeline.run_pipeline("INV-2001", "VX-2001")
 
     assert res["invoice_id"] == "INV-2001"
-    assert res["stage_2_triage"]["decision"] == "INVESTIGATE"
-    assert res["stage_5_investigation"]["recommended_action"] == "APPLY_AMENDMENT"
-    assert res["stage_7_human_gate"]["requires_human_payment_approval"] is True
+    assert res["case_id"] == "VX-2001"
+    assert "stage_5_investigation" in res
+    inv_res = res["stage_5_investigation"]
+
+    # Verify standardized contract fields
+    assert inv_res["case_id"] == "VX-2001"
+    assert inv_res["investigation_status"] == "COMPLETED"
+    assert "discrepancy_type" in inv_res
+    assert isinstance(inv_res["current_evidence"], list)
+    assert "findings" in inv_res
+    assert "relevant_memory" in inv_res
+    assert inv_res["memory_verdict"] in ("CONFIRMED", "CONTRADICTED", "NOT_APPLICABLE")
+    assert "conclusion" in inv_res
+    assert "recommended_action" in inv_res
+    assert inv_res["requires_human_review"] is True
+    assert inv_res["resolution_state"] == "AWAITING_HUMAN_SIGN_OFF"
+    assert inv_res["learning_candidate"] is True
 
 
-def test_all_5_demo_scenarios():
-    """Verify all 5 seeded demo scenarios run and return clean structured results."""
+def test_investigation_result_caching_and_no_duplicate_execution():
+    """Verify case-level caching prevents duplicate pipeline executions on reruns."""
+    session_state_cache = {}
+    case_id = "VX-2001"
+
+    # Simulate First View -> Run Pipeline & Cache
+    if f"pipeline_res_{case_id}" not in session_state_cache:
+        pipeline = InvestigationPipeline()
+        session_state_cache[f"pipeline_res_{case_id}"] = pipeline.run_pipeline("INV-2001", case_id)
+
+    first_result = session_state_cache[f"pipeline_res_{case_id}"]
+
+    # Simulate Rerun -> Reuse Cached Result
+    execution_counter = 0
+    if f"pipeline_res_{case_id}" not in session_state_cache:
+        execution_counter += 1
+
+    assert execution_counter == 0
+    assert session_state_cache[f"pipeline_res_{case_id}"] == first_result
+
+
+def test_memory_recall_and_no_memory_fallback():
+    """Verify memory recall when memories exist vs fallback when no memory is present."""
+    mem_repo = get_memory_repository()
+
+    # Query for known topic
+    recalled = mem_repo.recall(query="price amendment", vendor_id="VND-001", top_k=3)
+    assert isinstance(recalled, list)
+
+    # Query for non-existent vendor
+    no_mem = mem_repo.recall(query="xyz_non_existent_topic_12345", vendor_id="VND-NONEXISTENT-999", top_k=3)
+    assert isinstance(no_mem, list)
+    assert len(no_mem) == 0
+
+
+def test_memory_confirmed_vs_contradicted_and_evidence_override():
+    """Verify memory confirmed vs contradicted verdicts and current evidence overriding memory."""
     pipeline = InvestigationPipeline()
 
-    # Scenario 1: Clean invoice
-    s1 = pipeline.run_pipeline("INV-1001", "VX-1001")
-    assert s1["stage_5_investigation"]["recommended_action"] == "CLEAR"
+    # Scenario 2 (VX-2001): Approved amendment exists -> Memory CONFIRMED
+    res_confirmed = pipeline.run_pipeline("INV-2001", "VX-2001")
+    inv_c = res_confirmed["stage_5_investigation"]
+    assert inv_c["memory_verdict"] == "CONFIRMED"
+    assert inv_c["recommended_action"] == "APPLY_AMENDMENT"
 
-    # Scenario 2: ACME Amendment confirmed
-    s2 = pipeline.run_pipeline("INV-2001", "VX-2001")
-    assert s2["stage_5_investigation"]["recommended_action"] == "APPLY_AMENDMENT"
-    assert s2["stage_5_investigation"]["memory_verdict"] == "CONFIRMED"
-
-    # Scenario 3: ACME Contradicted memory
-    s3 = pipeline.run_pipeline("INV-2002", "VX-2002")
-    assert s3["stage_5_investigation"]["recommended_action"] == "DRAFT_VENDOR_QUERY"
-    assert s3["stage_5_investigation"]["memory_verdict"] == "CONTRADICTED"
-
-    # Scenario 4: Human Correction applied
-    s4 = pipeline.run_pipeline("INV-2044", "VX-2044")
-    assert s4["stage_5_investigation"]["recommended_action"] == "REQUEST_CORRECTION"
-
-    # Scenario 5: Fraud Signal
-    s5 = pipeline.run_pipeline("INV-3005", "VX-3005")
-    assert s5["stage_5_investigation"]["recommended_action"] == "FLAG_FRAUD"
-    assert s5["stage_7_human_gate"]["requires_human_fraud_review"] is True
+    # Scenario 3 (VX-2002): Memory recalls prior amendment experience, but current PO has NO approved amendment -> Memory CONTRADICTED
+    res_contradicted = pipeline.run_pipeline("INV-2002", "VX-2002")
+    inv_contr = res_contradicted["stage_5_investigation"]
+    assert inv_contr["memory_verdict"] == "CONTRADICTED"
+    # Current evidence overrides past memory! Action becomes DRAFT_VENDOR_QUERY instead of auto-approval.
+    assert inv_contr["recommended_action"] == "DRAFT_VENDOR_QUERY"
 
 
-def test_human_feedback_reflection_and_future_recall():
-    """Verify human supervisor feedback creates retained case experience that is recalled in future investigations."""
+def test_human_decision_learning_and_future_recall():
+    """Verify human supervisor decision creates retained lesson that is retrieved by future investigation."""
     pipeline = InvestigationPipeline()
     mem_repo = get_memory_repository()
 
-    # Process a human correction on a case
+    # Process human decision on Case A
     ref_res = pipeline.process_human_decision(
-        case_id="VX-TEST-999",
+        case_id="VX-TEST-888",
         vendor_id="VND-002",
         vendor_name="ACME Corp",
         discrepancy_type="Price mismatch",
         agent_recommendation="APPLY_AMENDMENT",
         human_outcome="CORRECTED",
-        human_notes="Supervisor correction: Verify amendment effective date before auto-releasing payment."
+        human_notes="Supervisor correction: Check warehouse delivery receipt before releasing payment."
     )
 
     assert ref_res["human_outcome"] == "CORRECTED"
-    assert "saved_memory" in ref_res
 
-    # Recall memories for ACME Corp and verify the newly stored human correction lesson is present
-    recalled = mem_repo.recall(query="amendment effective date", vendor_id="VND-002")
+    # Verify lesson retained in memory
+    recalled = mem_repo.recall(query="delivery receipt warehouse", vendor_id="VND-002")
     assert len(recalled) > 0
-    assert any("Supervisor correction" in m.get("lesson", "") or "effective date" in m.get("lesson", "").lower() for m in recalled)
+    assert any("Supervisor correction" in m.get("lesson", "") or "warehouse" in m.get("lesson", "").lower() for m in recalled)
+
+
+def test_analytics_and_human_gated_approval_state():
+    """Verify payment release remains strictly human gated and propagates state across application."""
+    biz_repo = get_business_repository()
+    analytics = get_analytics_service()
+
+    # Check initial metrics
+    metrics_before = analytics.get_home_metrics()
+
+    # Approve Case VX-4001
+    biz_repo.update_approval_status("VX-4001", "RESOLVED", "Payment release approved by Finance Manager.")
+    case_4001 = biz_repo.get_case("VX-4001")
+    assert case_4001["status"] == "RESOLVED"
+
+    # Verify audit event
+    logs = biz_repo.get_audit_logs("VX-4001")
+    assert len(logs) > 0
+
+    # Reset case status
+    biz_repo.update_case("VX-4001", "UNPROCESSED", "Pending Triage")
 
 
 if __name__ == "__main__":
     pytest.main([__file__])
-

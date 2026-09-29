@@ -169,7 +169,7 @@ def render_home_page():
     with c1:
         render_stat_tile("Needs your approval", str(needing_app_cnt), "Awaiting payment signoff", "#d97706")
     with c2:
-        render_stat_tile("Being checked", str(needs_inv_cnt), "Unresolved exceptions", "#2563eb")
+        render_stat_tile("Pending discrepancies", str(needs_inv_cnt), "Unresolved exceptions", "#2563eb")
     with c3:
         render_stat_tile("Resolved discrepancies", str(metrics.get("resolved_discrepancies_count", 0)), "Verified and closed", "#16a34a")
     with c4:
@@ -444,9 +444,11 @@ def render_case_detail_view(case_id: str):
     rec_doc = biz_repo.get_receipt(po_id) if po_id else {}
     contract_doc = biz_repo.get_contract(vendor_id) if vendor_id else {}
 
-    prev_nav = st.session_state.get("previous_nav", "Approvals")
+    prev_nav = st.session_state.get("previous_nav", "Home")
     if st.button(f"← Back to {prev_nav}"):
+        st.session_state["current_nav"] = prev_nav
         st.session_state["view_mode"] = "list"
+        st.session_state["selected_case_id"] = None
         st.rerun()
 
     st.markdown("<br/>", unsafe_allow_html=True)
@@ -521,15 +523,20 @@ def render_case_detail_view(case_id: str):
     </div>
     """, unsafe_allow_html=True)
 
-    # TRIGGER INVESTIGATION PIPELINE (Clean Integration Button)
-    if st.button("RUN INVESTIGATION PIPELINE", type="primary", use_container_width=True, key=f"run_inv_{case_id}"):
-        with st.spinner("Reviewing current evidence, contract terms, and past organizational experience..."):
-            pipeline_res = pipeline.run_pipeline(inv_id, case_id)
-            st.session_state[f"pipeline_res_{case_id}"] = pipeline_res
-            st.success("Investigation completed!")
-            st.rerun()
-
+    # AUTOMATIC INVESTIGATION PIPELINE (Cached per case_id)
     pipe_res = st.session_state.get(f"pipeline_res_{case_id}")
+    if not pipe_res:
+        with st.spinner("Reviewing current evidence, contract terms, and past organizational experience..."):
+            try:
+                pipe_res = pipeline.run_pipeline(inv_id, case_id)
+                st.session_state[f"pipeline_res_{case_id}"] = pipe_res
+            except Exception as e:
+                logger.error(f"Pipeline execution failed for {case_id}: {e}")
+                pipe_res = {
+                    "status": "ERROR",
+                    "user_message": "This case could not be fully investigated. Please review the available evidence."
+                }
+                st.session_state[f"pipeline_res_{case_id}"] = pipe_res
 
     # --------------------------------------------------
     # SECTION 2 — WHAT VAULTY FOUND
@@ -606,7 +613,7 @@ def render_case_detail_view(case_id: str):
     st.markdown("---")
     st.markdown("### THIS NEEDS YOUR INPUT")
 
-    if status in ("AWAITING_HUMAN_PAYMENT_RELEASE", "UNPROCESSED") or orch_res.get("requires_human_payment_approval"):
+    if status in ("AWAITING_HUMAN_PAYMENT_RELEASE", "UNPROCESSED", "INVESTIGATING", "OPEN") or orch_res.get("requires_human_payment_approval"):
         st.markdown("""
         <div style="background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #d97706; border-radius: 8px; padding: 18px 20px; margin-bottom: 16px;">
             <div style="font-size: 15px; font-weight: 800; color: #92400e;">
@@ -639,7 +646,7 @@ def render_case_detail_view(case_id: str):
         with col_rej:
             notes_input = st.text_input("Correction Notes", "Verify receipt before releasing payment.", key=f"corr_{case_id}")
             if st.button("REQUEST CORRECTION / HOLD", use_container_width=True, key=f"rej_{case_id}"):
-                biz_repo.update_approval_status(case_id, "PENDING VENDOR RESPONSE", f"Payment held: {notes_input}")
+                biz_repo.update_approval_status(case_id, "ON_HOLD", f"Payment held: {notes_input}")
                 ref_res = pipeline.process_human_decision(
                     case_id=case_id,
                     vendor_id=vendor_id,
@@ -653,10 +660,32 @@ def render_case_detail_view(case_id: str):
                 st.warning("Action saved! Vaulty learned from your feedback for future investigations.")
                 st.rerun()
 
+    elif status in ("RESOLVED", "APPROVED"):
+        st.markdown("""
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #16a34a; border-radius: 8px; padding: 18px 20px; margin-bottom: 16px;">
+            <div style="font-size: 15px; font-weight: 800; color: #166534;">
+                ✓ PAYMENT RELEASE APPROVED
+            </div>
+            <div style="font-size: 13px; color: #15803d; margin-top: 4px;">
+                This exception case has been reviewed and approved by Finance Management. Payment release is authorized.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    elif status in ("ON_HOLD", "PENDING VENDOR RESPONSE", "CORRECTION REQUESTED"):
+        st.markdown(f"""
+        <div style="background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #d97706; border-radius: 8px; padding: 18px 20px; margin-bottom: 16px;">
+            <div style="font-size: 15px; font-weight: 800; color: #92400e;">
+                ⏸ INVOICE PLACED ON HOLD ({status})
+            </div>
+            <div style="font-size: 13px; color: #78350f; margin-top: 4px;">
+                Payment release is suspended pending vendor response or invoice correction.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
     elif status == "FRAUD REVIEW" or orch_res.get("requires_human_fraud_review"):
         st.error("THIS CASE IS PLACED ON FRAUD REVIEW. ROUTED TO FRAUD AUDIT TEAM.")
     else:
-        st.success("This case has been resolved.")
+        st.info(f"Case Status: {status}")
 
     # --------------------------------------------------
     # SECTION 7 — VAULTY LEARNED FROM THIS CASE

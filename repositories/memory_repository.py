@@ -104,21 +104,30 @@ class LocalMemoryRepository(AbstractMemoryRepository):
         scored_lessons = []
 
         for item in all_lessons:
-            score = 0
+            if vendor_id and item.get("vendor_id") != vendor_id:
+                continue
+
+            match_score = 0
             if vendor_id and item.get("vendor_id") == vendor_id:
-                score += 5
+                match_score += 5
 
             lesson_text = (item.get("lesson", "") + " " + item.get("topic", "") + " " + item.get("vendor_name", "")).lower()
+            query_matched = False
             for term in query_terms:
                 if len(term) > 3 and term in lesson_text:
-                    score += 2
+                    match_score += 2
+                    query_matched = True
 
+            if query_terms and not query_matched and not (vendor_id and item.get("vendor_id") == vendor_id):
+                continue
+
+            score = match_score
             if item.get("human_feedback_type") == "HUMAN_CORRECTION":
                 score += 3
             elif item.get("human_feedback_type") == "SECURITY_POLICY":
                 score += 2
 
-            if score > 0 or not query_terms:
+            if score > 0:
                 scored_lessons.append((score, item))
 
         scored_lessons.sort(key=lambda x: x[0], reverse=True)

@@ -2,15 +2,14 @@ import json
 import logging
 from repositories.business_repository import get_business_repository
 from repositories.memory_repository import get_memory_repository
-from utils.config import GROQ_API_KEY, GROQ_MODEL
+from utils.llm_client import LLMClient
 from utils.logging_utils import log_audit_event
 
 logger = logging.getLogger("VAULTY.InvestigatorAgent")
 
 class InvestigatorAgent:
     def __init__(self):
-        self.groq_key = GROQ_API_KEY
-        self.model = GROQ_MODEL
+        self.llm_client = LLMClient()
 
     def investigate(self, invoice_id: str, case_id: str = None) -> dict:
         """
@@ -36,16 +35,10 @@ class InvestigatorAgent:
         amendments = biz_repo.get_amendments(vendor_id) if vendor_id else []
 
         # 2. Recall Hindsight memory dynamically
-        search_query = f"discrepancy price amendment partial delivery duplicate fraud bank"
+        search_query = "discrepancy price amendment partial delivery duplicate fraud bank"
         recalled_memories = mem_repo.recall(query=search_query, vendor_id=vendor_id, top_k=3)
 
-        # 3. LLM or Evidence-Based Structured Reasoning Engine
-        if self.groq_key:
-            try:
-                from groq import Groq
-                client = Groq(api_key=self.groq_key)
-
-                prompt = f"""
+        prompt = f"""
 You are the Investigator Agent for Vaulty (AI Exception Intelligence).
 Investigate invoice exception {invoice_id} for vendor {vendor_id}.
 
@@ -74,193 +67,220 @@ Synthesize your investigation into a strict JSON object:
 - "risk_reason": "Specific risk explanation"
 - "evidence_gaps": ["List of missing or unverified evidence items"]
 """
-                response = client.chat.completions.create(
-                    model=self.model,
-                    messages=[{"role": "user", "content": prompt}],
-                    response_format={"type": "json_object"},
-                    temperature=0.1
-                )
-                res = json.loads(response.choices[0].message.content)
-                log_audit_event(cid, "InvestigatorAgent", "INVESTIGATION_COMPLETE", res)
-                return res
-            except Exception as e:
-                logger.warning(f"Groq API call failed in Investigator Agent: {e}. Executing evidence reasoning engine.")
 
-        # --- Deterministic Evidence Reasoning Engine (Zero hardcoded vendor names / zero hardcoded IDs) ---
-        exception_type = "Price mismatch"
-        current_evidence = []
-        relevant_memory = [m.get("lesson", "") for m in recalled_memories]
-        memory_influence = ""
-        memory_verdict = "NOT_APPLICABLE"
-        recommended_action = ""
-        verified_amendment_id = None
-        risk_reason = ""
-        evidence_gaps = []
-
-        # Fraud Banking Anomaly Check
-        bank_updated_at = vendor_hist.get("banking_details_updated_at", "")
-        inv_date = inv.get("invoice_date", "2026-09-01")
-        is_recent_bank_change = False
-        if bank_updated_at and ("2026-09" in bank_updated_at or vendor_hist.get("risk_rating") == "HIGH"):
-            is_recent_bank_change = True
-
-        if is_recent_bank_change:
-            exception_type = "Potential fraud signal"
-            current_evidence = [
-                f"Vendor banking details updated recently on {bank_updated_at}",
-                f"Invoice total ₹{inv.get('total_amount', 0):,.2f} exceeds PO total ₹{po.get('total_amount', 0):,.2f}",
-                f"Vendor risk rating: {vendor_hist.get('risk_rating', 'HIGH')}"
-            ]
-            recommended_action = "FLAG_FRAUD"
-            risk_reason = "Recent bank account modification combined with rate discrepancy poses severe financial risk."
-            evidence_gaps = ["Vendor identity re-verification", "Bank account change confirmation"]
-            memory_verdict = "CONFIRMED"
-            memory_influence = "Recalled institutional security policy: Banking detail changes during a discrepancy mandate immediate fraud review."
-
-        # Duplicate Invoice Check
-        elif "notes" in inv and "duplicate" in inv.get("notes", "").lower():
-            exception_type = "Duplicate billing"
-            current_evidence = [
-                f"Invoice ID {invoice_id} matches description and total of PO {po_id}",
-                "Invoice notes indicate re-submission of prior billing period"
-            ]
-            recommended_action = "RESOLVE_DUPLICATE"
-            risk_reason = "Risk of duplicate payment release for previously billed goods."
-            evidence_gaps = []
-            memory_verdict = "CONFIRMED"
-            memory_influence = "Recalled duplicate handling procedure: Verify prior payment records and mark duplicate as resolved."
-
-        # Missing PO Check
-        elif not po_id or "error" in po:
-            exception_type = "Missing PO"
-            current_evidence = [
-                f"Invoice {invoice_id} submitted without valid Purchase Order reference",
-                f"Vendor master record {vendor_id} requires PO backing for all invoices"
-            ]
-            recommended_action = "DRAFT_VENDOR_QUERY"
-            risk_reason = "Unbacked invoice submitted without prior procurement authorization."
-            evidence_gaps = ["Valid Purchase Order reference from vendor"]
-            memory_verdict = "CONFIRMED"
-            memory_influence = "Recalled no-PO policy: Query vendor to provide matching purchase order reference."
-
-        # Quantity / Partial Delivery Check
-        elif receipt.get("status") == "PARTIAL_DELIVERY":
-            exception_type = "Quantity mismatch"
-            rec_qty = receipt.get("line_items", [{}])[0].get("received_quantity", 0)
-            inv_qty = inv.get("line_items", [{}])[0].get("quantity", 0)
-
-            current_evidence = [
-                f"Goods Receipt {receipt.get('receipt_id')} records partial delivery of {rec_qty} units",
-                f"Invoice {invoice_id} bills for full PO quantity of {inv_qty} units",
-                f"Contract terms state partial deliveries payable only upon verified receipt of partial quantity"
-            ]
-            recommended_action = "REQUEST_CORRECTION"
-            risk_reason = "Overbilling for goods not yet physically received at warehouse."
-            evidence_gaps = ["Delivery confirmation for remaining 20 units"]
-            
-            # Check if memory has human correction lesson regarding partial delivery
-            has_human_correction = any("HUMAN CORRECTION" in m.get("lesson", "") or "partial" in m.get("lesson", "").lower() for m in recalled_memories)
-            if has_human_correction:
-                memory_verdict = "CONFIRMED"
-                memory_influence = "PAST HUMAN CORRECTION RECALLED: Supervisor previously corrected agent for auto-approving partial deliveries. Current evidence confirms warehouse received only partial quantity, so agent adaptively holds full payment and requests corrected invoice."
-            else:
-                memory_verdict = "CONFIRMED"
-                memory_influence = "Recalled partial delivery handling policy: Hold full payment until physical receipt is confirmed."
-
-        # Price Mismatch Check
-        elif inv.get("total_amount") != po.get("total_amount"):
+        def fallback_investigation():
             exception_type = "Price mismatch"
-            inv_unit_price = inv.get("line_items", [{}])[0].get("unit_price", 0)
-            po_unit_price = po.get("line_items", [{}])[0].get("unit_price", 0)
+            current_evidence = []
+            relevant_memory = [m.get("lesson", "") for m in recalled_memories]
+            memory_influence = ""
+            memory_verdict = "NOT_APPLICABLE"
+            recommended_action = ""
+            verified_amendment_id = None
+            risk_reason = ""
+            evidence_gaps = []
 
-            # Check for active approved amendment matching this specific PO ID dynamically!
-            matching_amendment = None
-            for amd in amendments:
-                if amd.get("po_id") == po_id and amd.get("status") == "APPROVED":
-                    if amd.get("amended_unit_price") == inv_unit_price:
-                        matching_amendment = amd
-                        break
+            # Fraud Banking Anomaly Check
+            bank_updated_at = vendor_hist.get("banking_details_updated_at", "")
+            is_recent_bank_change = False
+            if bank_updated_at and ("2026-09" in bank_updated_at or vendor_hist.get("risk_rating") == "HIGH"):
+                is_recent_bank_change = True
 
-            # Check if memory recalled prior amendment experience
-            has_amendment_memory = any("amendment" in m.get("lesson", "").lower() or "price" in m.get("lesson", "").lower() for m in recalled_memories)
-
-            if matching_amendment:
-                verified_amendment_id = matching_amendment.get("amendment_id")
+            if is_recent_bank_change:
+                exception_type = "Potential fraud signal"
                 current_evidence = [
-                    f"Invoiced unit price ₹{inv_unit_price:,.2f} vs PO unit price ₹{po_unit_price:,.2f}",
-                    f"Verified active Approved Amendment {verified_amendment_id} signed by {matching_amendment.get('approved_by')}",
-                    f"Amended rate ₹{matching_amendment.get('amended_unit_price'):,.2f} exactly matches invoice rate ₹{inv_unit_price:,.2f}"
+                    f"Vendor banking details updated recently on {bank_updated_at}",
+                    f"Invoice total ₹{inv.get('total_amount', 0):,.2f} exceeds PO total ₹{po.get('total_amount', 0):,.2f}",
+                    f"Vendor risk rating: {vendor_hist.get('risk_rating', 'HIGH')}"
                 ]
-                recommended_action = "APPLY_AMENDMENT"
-                risk_reason = "Price discrepancy is backed by verified contract amendment."
-                evidence_gaps = []
+                recommended_action = "FLAG_FRAUD"
+                risk_reason = "Recent bank account modification combined with rate discrepancy poses severe financial risk."
+                evidence_gaps = ["Vendor identity re-verification", "Bank account change confirmation"]
+                memory_verdict = "CONFIRMED"
+                memory_influence = "Recalled institutional security policy: Banking detail changes during a discrepancy mandate immediate fraud review."
 
-                if has_amendment_memory:
-                    memory_verdict = "CONFIRMED"
-                    memory_influence = f"Recalled past experience that pricing increases may be backed by approved amendments. Current evidence search confirmed approved amendment {verified_amendment_id} for PO {po_id}."
-                else:
-                    memory_verdict = "CONFIRMED"
-                    memory_influence = f"Current evidence search confirmed approved pricing amendment {verified_amendment_id}."
-
-            else:
-                # No amendment found for THIS PO!
+            # Duplicate Invoice Check
+            elif "notes" in inv and "duplicate" in inv.get("notes", "").lower():
+                exception_type = "Duplicate billing"
                 current_evidence = [
-                    f"Invoiced unit price ₹{inv_unit_price:,.2f} vs PO unit price ₹{po_unit_price:,.2f}",
-                    f"Amendment log searched for vendor {vendor_id} - NO approved amendment found for PO {po_id}",
-                    f"Master contract mandates signed pricing amendment for rate adjustments"
+                    f"Invoice ID {invoice_id} matches description and total of PO {po_id}",
+                    "Invoice notes indicate re-submission of prior billing period"
+                ]
+                recommended_action = "RESOLVE_DUPLICATE"
+                risk_reason = "Risk of duplicate payment release for previously billed goods."
+                evidence_gaps = []
+                memory_verdict = "CONFIRMED"
+                memory_influence = "Recalled duplicate handling procedure: Verify prior payment records and mark duplicate as resolved."
+
+            # Missing PO Check
+            elif not po_id or "error" in po:
+                exception_type = "Missing PO"
+                current_evidence = [
+                    f"Invoice {invoice_id} submitted without valid Purchase Order reference",
+                    f"Vendor master record {vendor_id} requires PO backing for all invoices"
                 ]
                 recommended_action = "DRAFT_VENDOR_QUERY"
-                risk_reason = "Unsubstantiated price increase without approved contract amendment."
-                evidence_gaps = [f"Approved contract amendment for PO {po_id}"]
+                risk_reason = "Unbacked invoice submitted without prior procurement authorization."
+                evidence_gaps = ["Valid Purchase Order reference from vendor"]
+                memory_verdict = "CONFIRMED"
+                memory_influence = "Recalled no-PO policy: Query vendor to provide matching purchase order reference."
 
-                if has_amendment_memory:
-                    memory_verdict = "CONTRADICTED"
-                    memory_influence = f"PAST EXPERIENCE CONTRADICTED BY CURRENT EVIDENCE: Recalled prior experience where rate increases were supported by amendments. However, current evidence check revealed NO approved amendment for PO {po_id}. Vaulty adapted and refused to auto-resolve, drafting vendor query instead."
+            # Quantity / Partial Delivery Check
+            elif receipt.get("status") == "PARTIAL_DELIVERY":
+                exception_type = "Quantity mismatch"
+                rec_qty = receipt.get("line_items", [{}])[0].get("received_quantity", 0)
+                inv_qty = inv.get("line_items", [{}])[0].get("quantity", 0)
+
+                current_evidence = [
+                    f"Goods Receipt {receipt.get('receipt_id')} records partial delivery of {rec_qty} units",
+                    f"Invoice {invoice_id} bills for full PO quantity of {inv_qty} units",
+                    "Contract terms state partial deliveries payable only upon verified receipt of partial quantity"
+                ]
+                recommended_action = "REQUEST_CORRECTION"
+                risk_reason = "Overbilling for goods not yet physically received at warehouse."
+                evidence_gaps = ["Delivery confirmation for remaining units"]
+
+                has_human_correction = any("HUMAN CORRECTION" in m.get("lesson", "") or "partial" in m.get("lesson", "").lower() for m in recalled_memories)
+                if has_human_correction:
+                    memory_verdict = "CONFIRMED"
+                    memory_influence = "PAST HUMAN CORRECTION RECALLED: Supervisor previously corrected agent for auto-approving partial deliveries. Current evidence confirms warehouse received only partial quantity, so agent adaptively holds full payment and requests corrected invoice."
                 else:
-                    memory_verdict = "NOT_APPLICABLE"
-                    memory_influence = "No approved pricing amendment found in vendor records for current PO."
+                    memory_verdict = "CONFIRMED"
+                    memory_influence = "Recalled partial delivery handling policy: Hold full payment until physical receipt is confirmed."
 
-        else:
-            exception_type = "None"
-            current_evidence = ["Matching records across Invoice, PO, and Goods Receipt"]
-            recommended_action = "CLEAR"
-            risk_reason = "No discrepancy found."
-            evidence_gaps = []
-            memory_verdict = "NOT_APPLICABLE"
-            memory_influence = "Routine clear case."
+            # Price Mismatch Check
+            elif inv.get("total_amount") != po.get("total_amount"):
+                exception_type = "Price mismatch"
+                inv_unit_price = inv.get("line_items", [{}])[0].get("unit_price", 0)
+                po_unit_price = po.get("line_items", [{}])[0].get("unit_price", 0)
 
-        reasoning_summary = f"Investigation completed for {invoice_id}. Exception: {exception_type}. Recommended Action: {recommended_action}."
+                matching_amendment = None
+                for amd in amendments:
+                    if amd.get("po_id") == po_id and amd.get("status") == "APPROVED":
+                        if amd.get("amended_unit_price") == inv_unit_price:
+                            matching_amendment = amd
+                            break
 
-        # Map to Memory Influence Structure for UI centerpiece
-        past_experience = relevant_memory[0] if relevant_memory else "Checking organizational database for previous vendor cases..."
-        curr_evid_summary = "; ".join(current_evidence)
+                has_amendment_memory = any("amendment" in m.get("lesson", "").lower() or "price" in m.get("lesson", "").lower() for m in recalled_memories)
 
-        if memory_verdict == "CONFIRMED":
-            means_text = f"Previous experience applies to this invoice and is verified by current evidence."
-        elif memory_verdict == "CONTRADICTED":
-            means_text = f"This case is different from past experience. Current evidence contradicts memory, so Vaulty did NOT reuse previous resolution."
-        else:
-            means_text = f"Standard evidence verification applied."
+                if matching_amendment:
+                    verified_amendment_id = matching_amendment.get("amendment_id")
+                    current_evidence = [
+                        f"Invoiced unit price ₹{inv_unit_price:,.2f} vs PO unit price ₹{po_unit_price:,.2f}",
+                        f"Verified active Approved Amendment {verified_amendment_id} signed by {matching_amendment.get('approved_by')}",
+                        f"Amended rate ₹{matching_amendment.get('amended_unit_price'):,.2f} exactly matches invoice rate ₹{inv_unit_price:,.2f}"
+                    ]
+                    recommended_action = "APPLY_AMENDMENT"
+                    risk_reason = "Price discrepancy is backed by verified contract amendment."
+                    evidence_gaps = []
 
-        result = {
-            "exception_type": exception_type,
-            "current_evidence": current_evidence,
-            "relevant_memory": relevant_memory,
-            "memory_influence": memory_influence,
-            "memory_verdict": memory_verdict,
-            "reasoning_summary": reasoning_summary,
-            "recommended_action": recommended_action,
-            "verified_amendment_id": verified_amendment_id,
-            "requires_human": True,  # Always human gated for payment release
-            "risk_reason": risk_reason,
-            "evidence_gaps": evidence_gaps,
-            "memory_influence_analysis": {
-                "memory_recalled": past_experience,
-                "current_evidence": curr_evid_summary,
-                "confirmation_or_contradiction": memory_verdict,
-                "final_adaptation": means_text
+                    if has_amendment_memory:
+                        memory_verdict = "CONFIRMED"
+                        memory_influence = f"Recalled past experience that pricing increases may be backed by approved amendments. Current evidence search confirmed approved amendment {verified_amendment_id} for PO {po_id}."
+                    else:
+                        memory_verdict = "CONFIRMED"
+                        memory_influence = f"Current evidence search confirmed approved pricing amendment {verified_amendment_id}."
+
+                else:
+                    current_evidence = [
+                        f"Invoiced unit price ₹{inv_unit_price:,.2f} vs PO unit price ₹{po_unit_price:,.2f}",
+                        f"Amendment log searched for vendor {vendor_id} - NO approved amendment found for PO {po_id}",
+                        "Master contract mandates signed pricing amendment for rate adjustments"
+                    ]
+                    recommended_action = "DRAFT_VENDOR_QUERY"
+                    risk_reason = "Unsubstantiated price increase without approved contract amendment."
+                    evidence_gaps = [f"Approved contract amendment for PO {po_id}"]
+
+                    if has_amendment_memory:
+                        memory_verdict = "CONTRADICTED"
+                        memory_influence = f"PAST EXPERIENCE CONTRADICTED BY CURRENT EVIDENCE: Recalled prior experience where rate increases were supported by amendments. However, current evidence check revealed NO approved amendment for PO {po_id}. Vaulty adapted and refused to auto-resolve, drafting vendor query instead."
+                    else:
+                        memory_verdict = "NOT_APPLICABLE"
+                        memory_influence = "No approved pricing amendment found in vendor records for current PO."
+
+            else:
+                exception_type = "None"
+                current_evidence = ["Matching records across Invoice, PO, and Goods Receipt"]
+                recommended_action = "CLEAR"
+                risk_reason = "No discrepancy found."
+                evidence_gaps = []
+                memory_verdict = "NOT_APPLICABLE"
+                memory_influence = "Routine clear case."
+
+            reasoning_summary = f"Investigation completed for {invoice_id}. Exception: {exception_type}. Recommended Action: {recommended_action}."
+            past_experience = relevant_memory[0] if relevant_memory else "Checking organizational database for previous vendor cases..."
+            curr_evid_summary = "; ".join(current_evidence)
+
+            if memory_verdict == "CONFIRMED":
+                means_text = "Memory confirmed by current evidence."
+            elif memory_verdict == "CONTRADICTED":
+                means_text = "Past experience does not apply to the current evidence. Evidence overrides past experience."
+            else:
+                means_text = "No relevant past experience found." if not relevant_memory else "Past experience was found, but current evidence is not sufficient to apply it."
+
+            return {
+                "case_id": cid,
+                "investigation_status": "COMPLETED",
+                "discrepancy_type": exception_type,
+                "exception_type": exception_type,
+                "current_evidence": current_evidence,
+                "findings": reasoning_summary,
+                "relevant_memory": relevant_memory,
+                "memory_verdict": memory_verdict,
+                "memory_influence": memory_influence,
+                "memory_explanation": memory_influence,
+                "reasoning_summary": reasoning_summary,
+                "conclusion": means_text,
+                "recommended_action": recommended_action,
+                "requires_human": True,
+                "requires_human_review": True,
+                "resolution_state": "AWAITING_HUMAN_SIGN_OFF" if recommended_action != "CLEAR" else "RESOLVED",
+                "learning_candidate": True,
+                "verified_amendment_id": verified_amendment_id,
+                "risk_reason": risk_reason,
+                "evidence_gaps": evidence_gaps,
+                "memory_influence_analysis": {
+                    "memory_recalled": past_experience,
+                    "current_evidence": curr_evid_summary,
+                    "confirmation_or_contradiction": memory_verdict,
+                    "final_adaptation": means_text
+                }
             }
-        }
 
-        log_audit_event(cid, "InvestigatorAgent", "INVESTIGATION_COMPLETE", result)
-        return result
+        res = self.llm_client.generate_json(prompt, fallback_fn=fallback_investigation)
+
+        # Standardize contract output fields
+        res["case_id"] = cid
+        res["investigation_status"] = "COMPLETED"
+        if "discrepancy_type" not in res:
+            res["discrepancy_type"] = res.get("exception_type", "Invoice Exception")
+        if "findings" not in res:
+            res["findings"] = res.get("reasoning_summary", "Evidence verified against operational records.")
+        if "conclusion" not in res:
+            res["conclusion"] = res.get("memory_influence", "Investigation completed.")
+        if "requires_human_review" not in res:
+            res["requires_human_review"] = True
+        if "resolution_state" not in res:
+            res["resolution_state"] = "AWAITING_HUMAN_SIGN_OFF"
+        if "learning_candidate" not in res:
+            res["learning_candidate"] = True
+
+        if "memory_influence_analysis" not in res:
+            past_exp = res.get("relevant_memory", ["No prior memory"])[0] if res.get("relevant_memory") else "No prior memory"
+            curr_evid = "; ".join(res.get("current_evidence", []))
+            mv = res.get("memory_verdict", "NOT_APPLICABLE")
+            if mv == "CONFIRMED":
+                m_text = "Memory confirmed by current evidence."
+            elif mv == "CONTRADICTED":
+                m_text = "Past experience does not apply to the current evidence. Evidence overrides past experience."
+            else:
+                m_text = "No relevant past experience found."
+
+            res["memory_influence_analysis"] = {
+                "memory_recalled": past_exp,
+                "current_evidence": curr_evid,
+                "confirmation_or_contradiction": mv,
+                "final_adaptation": m_text
+            }
+
+        log_audit_event(cid, "InvestigatorAgent", "INVESTIGATION_COMPLETE", res)
+        return res

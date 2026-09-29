@@ -43,22 +43,21 @@ class AnalyticsService:
     def get_home_metrics(self) -> dict:
         cases = self.repo.get_all_cases()
         
-        # 1. Cases needing approval (awaiting human payment approval)
-        needing_approval = [c for c in cases if c.get("status") == "AWAITING_HUMAN_PAYMENT_RELEASE"]
+        # 1. Cases needing approval (active cases awaiting human payment signoff or decision)
+        needing_approval = [c for c in cases if c.get("status") in ("AWAITING_HUMAN_PAYMENT_RELEASE", "UNPROCESSED", "INVESTIGATING")]
         
-        # 2. Needs investigation (unresolved discrepancy cases requiring action)
-        unresolved_types = ("UNPROCESSED", "INVESTIGATING", "PENDING VENDOR RESPONSE", "CORRECTION REQUESTED")
-        needs_investigation = [c for c in cases if c.get("status") in unresolved_types and normalize_discrepancy_type(c.get("discrepancy_type", "")) != "Matching Consistency (Clean)"]
+        # 2. Pending discrepancies (all unresolved discrepancy cases requiring action)
+        pending_discrepancies = [c for c in cases if c.get("status") not in ("RESOLVED", "APPROVED") and normalize_discrepancy_type(c.get("discrepancy_type", "")) != "Matching Consistency (Clean)"]
         
         # 3. Resolved discrepancies (resolved discrepancy cases, not clean ones)
-        resolved_discrepancies = [c for c in cases if c.get("status") == "RESOLVED" and normalize_discrepancy_type(c.get("discrepancy_type", "")) != "Matching Consistency (Clean)"]
+        resolved_discrepancies = [c for c in cases if c.get("status") in ("RESOLVED", "APPROVED") and normalize_discrepancy_type(c.get("discrepancy_type", "")) != "Matching Consistency (Clean)"]
         
         # 4. Extra amount identified
         extra_amount = self.get_extra_amount_identified()
 
         return {
             "cases_needing_approval_count": len(needing_approval),
-            "needs_investigation_count": len(needs_investigation),
+            "needs_investigation_count": len(pending_discrepancies),
             "resolved_discrepancies_count": len(resolved_discrepancies),
             "extra_amount_identified": extra_amount,
             "total_cases_count": len(cases)

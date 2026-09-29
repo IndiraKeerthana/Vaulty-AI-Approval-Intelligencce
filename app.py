@@ -2,6 +2,7 @@ import streamlit as st
 import datetime
 from repositories.business_repository import get_business_repository
 from repositories.memory_repository import get_memory_repository
+from agents.pipeline import InvestigationPipeline
 from ui.styles import inject_custom_css
 from ui.components import render_sidebar_header
 from ui.pages import (
@@ -23,6 +24,7 @@ inject_custom_css()
 
 biz_repo = get_business_repository()
 mem_repo = get_memory_repository()
+pipeline = InvestigationPipeline()
 
 data_mode = biz_repo.get_data_mode()
 memory_mode = mem_repo.get_memory_mode()
@@ -32,7 +34,14 @@ render_sidebar_header(data_mode=data_mode, memory_mode=memory_mode)
 
 st.sidebar.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
-# 2. Primary Navigation (Home, Approvals, Vendors, Reports - No "Navigation" heading)
+def on_nav_change():
+    st.session_state["current_nav"] = st.session_state.get("primary_nav_radio", "Home")
+    st.session_state["view_mode"] = "list"
+    st.session_state["selected_case_id"] = None
+
+if "current_nav" in st.session_state:
+    st.session_state["primary_nav_radio"] = st.session_state["current_nav"]
+
 current_nav = st.session_state.get("current_nav", "Home")
 nav_options = ["Home", "Approvals", "Vendors", "Reports"]
 nav_index = nav_options.index(current_nav) if current_nav in nav_options else 0
@@ -42,13 +51,14 @@ selected_nav = st.sidebar.radio(
     nav_options,
     index=nav_index,
     key="primary_nav_radio",
-    label_visibility="collapsed"
+    label_visibility="collapsed",
+    on_change=on_nav_change
 )
 
-# Handle explicit tab changes via sidebar radio
 if selected_nav != current_nav:
     st.session_state["current_nav"] = selected_nav
     st.session_state["view_mode"] = "list"
+    st.session_state["selected_case_id"] = None
     st.rerun()
 
 st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
@@ -88,7 +98,10 @@ with st.sidebar.expander("Ingest Invoice ▾", expanded=False):
             bank_account=f"IN{int(datetime.datetime.now().timestamp())}",
             is_recent_bank_update=sim_bank_flag
         )
-        st.session_state["selected_case_id"] = new_case["case_id"]
+        cid = new_case["case_id"]
+        pipeline_res = pipeline.run_pipeline(sim_inv_id, cid)
+        st.session_state[f"pipeline_res_{cid}"] = pipeline_res
+        st.session_state["selected_case_id"] = cid
         st.session_state["previous_nav"] = st.session_state.get("current_nav", "Approvals")
         st.session_state["view_mode"] = "detail"
         st.sidebar.success(f"Invoice {sim_inv_id} ingested!")

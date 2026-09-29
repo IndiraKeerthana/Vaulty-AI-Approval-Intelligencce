@@ -9,15 +9,14 @@ from tools.business_tools import (
     flag_for_fraud_review,
     update_exception_status
 )
-from utils.config import GROQ_API_KEY, GROQ_MODEL
+from utils.llm_client import LLMClient
 from utils.logging_utils import log_audit_event
 
 logger = logging.getLogger("VAULTY.ResolutionAgent")
 
 class ResolutionAgent:
     def __init__(self):
-        self.groq_key = GROQ_API_KEY
-        self.model = GROQ_MODEL
+        self.llm_client = LLMClient()
 
     def execute_resolution(self, invoice_id: str, investigation_result: dict, case_id: str = None) -> dict:
         """
@@ -43,13 +42,7 @@ class ResolutionAgent:
                 "summary": "Potential fraud anomaly signal detected. Normal resolution bypassed. Routed directly to FRAUD REVIEW."
             }
 
-        # LLM or Reasoned Dispatcher
-        if self.groq_key:
-            try:
-                from groq import Groq
-                client = Groq(api_key=self.groq_key)
-
-                prompt = f"""
+        prompt = f"""
 You are the Resolution Agent for Vaulty (AI Exception Intelligence).
 Based on the Investigator Agent's findings, choose and execute the single best resolution action for case {cid}.
 
@@ -66,19 +59,15 @@ Return JSON:
 - "chosen_action": "APPLY_AMENDMENT" / "DRAFT_VENDOR_QUERY" / "REQUEST_CORRECTION" / "RESOLVE_DUPLICATE" / "ESCALATE_PROCUREMENT"
 - "action_rationale": "Why this action is the safest response"
 """
-                response = client.chat.completions.create(
-                    model=self.model,
-                    messages=[{"role": "user", "content": prompt}],
-                    response_format={"type": "json_object"},
-                    temperature=0.1
-                )
-                llm_res = json.loads(response.choices[0].message.content)
-                recommended_action = llm_res.get("chosen_action", recommended_action)
-            except Exception as e:
-                logger.warning(f"Groq API call failed in Resolution Agent: {e}. Executing reasoned fallback dispatcher.")
+
+        def fallback_resolution():
+            return {"chosen_action": recommended_action}
+
+        llm_res = self.llm_client.generate_json(prompt, fallback_fn=fallback_resolution)
+        chosen_action = llm_res.get("chosen_action", recommended_action) or recommended_action
 
         # Dispatch write tools dynamically
-        if recommended_action == "APPLY_AMENDMENT":
+        if chosen_action == "APPLY_AMENDMENT":
             amendment_id = verified_amendment_id or "AM-VERIFIED"
             link_res = apply_contract_amendment_reference(invoice_id, amendment_id)
             close_res = close_as_resolved(cid, f"Resolved via verified contract amendment {amendment_id}.")
@@ -86,19 +75,19 @@ Return JSON:
             action_taken = "APPLY_CONTRACT_AMENDMENT"
             result_details = {"link": link_res, "close": close_res}
 
-        elif recommended_action == "DRAFT_VENDOR_QUERY":
+        elif chosen_action == "DRAFT_VENDOR_QUERY":
             query_res = draft_vendor_query("VENDOR", invoice_id, discrepancy=investigation_result.get("reasoning_summary", "Rate mismatch"))
-            summary = f"Drafted vendor query regarding rate discrepancy. Invoice placed on PENDING VENDOR RESPONSE."
+            summary = "Drafted vendor query regarding rate discrepancy. Invoice placed on PENDING VENDOR RESPONSE."
             action_taken = "DRAFT_VENDOR_QUERY"
             result_details = query_res
 
-        elif recommended_action == "REQUEST_CORRECTION":
+        elif chosen_action == "REQUEST_CORRECTION":
             corr_res = request_corrected_invoice(invoice_id, reason=investigation_result.get("reasoning_summary", "Partial delivery mismatch"))
-            summary = f"Issued formal request for corrected invoice based on warehouse receipt. Status set to CORRECTION REQUESTED."
+            summary = "Issued formal request for corrected invoice based on warehouse receipt. Status set to CORRECTION REQUESTED."
             action_taken = "REQUEST_CORRECTED_INVOICE"
             result_details = corr_res
 
-        elif recommended_action == "RESOLVE_DUPLICATE":
+        elif chosen_action == "RESOLVE_DUPLICATE":
             close_res = close_as_resolved(cid, "Closed as duplicate submission of previous invoice.")
             summary = "Exception identified as duplicate submission. Closed as RESOLVED (DUPLICATE)."
             action_taken = "CLOSE_AS_DUPLICATE"
@@ -106,11 +95,11 @@ Return JSON:
 
         else:
             esc_res = escalate_to_procurement(cid, reason=investigation_result.get("reasoning_summary", "Policy escalation"))
-            summary = f"Case escalated to Procurement Manager."
+            summary = "Case escalated to Procurement Manager."
             action_taken = "ESCALATE_TO_PROCUREMENT"
             result_details = esc_res
 
-        status = update_exception_status(cid, "AWAITING_HUMAN_PAYMENT_RELEASE" if recommended_action == "APPLY_AMENDMENT" else "INVESTIGATING", summary).get("status")
+        status = update_exception_status(cid, "AWAITING_HUMAN_PAYMENT_RELEASE" if chosen_action == "APPLY_AMENDMENT" else "INVESTIGATING", summary).get("status")
 
         output = {
             "action_taken": action_taken,

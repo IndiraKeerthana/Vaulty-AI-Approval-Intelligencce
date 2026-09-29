@@ -12,7 +12,7 @@ def inject_custom_css():
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
     }
 
-    /* Hide Streamlit Chrome & Headers */
+    /* Hide Streamlit Chrome & Default Headers */
     #MainMenu { visibility: hidden !important; }
     footer { visibility: hidden !important; }
     div[data-testid="stToolbar"] { display: none !important; }
@@ -20,19 +20,46 @@ def inject_custom_css():
     div[data-testid="stSidebarNav"] { display: none !important; }
     .stDeployButton { display: none !important; }
 
+    /* Streamlit Header Container */
     header[data-testid="stHeader"] {
         background: transparent !important;
         height: 3rem !important;
         z-index: 99 !important;
+        pointer-events: none !important;
     }
 
+    /* Force Sidebar to remain visible at all times */
+    section[data-testid="stSidebar"] {
+        display: flex !important;
+        visibility: visible !important;
+        background-color: #ffffff !important;
+        border-right: 1px solid #e2e8f0 !important;
+        min-width: 270px !important;
+        width: 270px !important;
+        transform: none !important;
+        margin-left: 0 !important;
+    }
+
+    /* Keep Sidebar Toggle Controls visible & styled */
     [data-testid="collapsedControl"],
-    button[data-testid="stSidebarCollapseButton"] {
+    div[data-testid="collapsedControl"],
+    button[data-testid="stSidebarCollapseButton"],
+    div[data-testid="stSidebarCollapseButton"] {
         display: flex !important;
         visibility: visible !important;
         opacity: 1 !important;
-        z-index: 1000 !important;
+        pointer-events: auto !important;
+        z-index: 999999 !important;
         color: #0f172a !important;
+    }
+
+    [data-testid="collapsedControl"] svg,
+    button[data-testid="stSidebarCollapseButton"] svg {
+        fill: #0f172a !important;
+        color: #0f172a !important;
+        stroke: #0f172a !important;
+        width: 20px !important;
+        height: 20px !important;
     }
 
     /* Layout Max Width & Spacing */
