@@ -122,7 +122,15 @@ class LocalJsonBusinessRepository(AbstractBusinessRepository):
             logger.error(f"Error saving {filename}: {e}")
 
     def get_all_cases(self) -> list:
-        return self._load_data("cases.json")
+        cases = self._load_data("cases.json")
+        invoices = self._load_data("invoices.json")
+        inv_map = {inv.get("invoice_id"): inv for inv in invoices if isinstance(inv, dict)}
+        for c in cases:
+            if isinstance(c, dict) and ("po_id" not in c or not c["po_id"]):
+                inv = inv_map.get(c.get("invoice_id"))
+                if inv and isinstance(inv, dict) and "po_id" in inv:
+                    c["po_id"] = inv["po_id"]
+        return cases
 
     def get_all_vendors(self) -> list:
         return self._load_data("vendors.json")

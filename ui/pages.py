@@ -28,44 +28,78 @@ analytics = get_analytics_service()
 pipeline = InvestigationPipeline()
 
 
-# --- TECHNICAL EVENT FILTERING HELPER ---
-
-TECHNICAL_ACTIONS = {
-    "START_REFLECTION", "REFLECTION_STORED", "START_TRIAGE", "MEMORY_WRITE",
-    "CHECK_MEMORY", "STAGE_1_INGESTION", "STAGE_2_TRIAGE", "STAGE_3_MEMORY",
-    "STAGE_4_EVIDENCE", "STAGE_5_INVESTIGATION", "STAGE_6_RESOLUTION", "STAGE_7_HUMAN_GATE"
-}
+# --- TECHNICAL EVENT FILTERING & TRANSLATION HELPERS ---
 
 def is_business_event(event: dict) -> bool:
     """Filters out internal technical log events from business UI."""
     if not isinstance(event, dict):
         return False
     act = str(event.get("action", "")).upper()
-    if any(tech in act for tech in TECHNICAL_ACTIONS):
+    agent = str(event.get("agent", "")).upper()
+
+    # Strictly exclude technical stage execution logs
+    if any(tech in act for tech in ("ORCHESTR", "TRIAGE", "REFLECT", "STAGE_", "MEMORY", "START_", "AGENT", "TOOL", "LLM", "PROMPT")):
+        return False
+    if any(tech in agent for tech in ("ORCHESTR", "TRIAGE", "REFLECT", "SYSTEM", "PIPELINE")):
         return False
     return True
 
 
 def format_business_event_desc(event: dict) -> str:
     """Formats an audit event into plain business language."""
-    act = str(event.get("action", ""))
+    act = str(event.get("action", "")).upper()
     cid = event.get("case_id", "Case")
 
-    if "APPROVAL_STATUS_RESOLVED" in act or "RESOLVED" in act:
-        return f"Payment approval released for case {cid}."
-    elif "AWAITING" in act or "PAYMENT" in act:
-        return f"Invoice waiting for payment approval ({cid})."
-    elif "VENDOR" in act or "DRAFT" in act:
+    if "RESOLV" in act or "APPROVED" in act or "RELEASE" in act:
+        return f"Payment approval recorded for case {cid}."
+    elif "CORRECT" in act or "SENT_BACK" in act:
+        return f"Correction requested for case {cid}."
+    elif "QUERY" in act or "VENDOR" in act:
         return f"Vendor confirmation requested for case {cid}."
-    elif "HOLD" in act or "PROCUREMENT" in act:
+    elif "HOLD" in act or "PROCURE" in act or "ESCALAT" in act:
         return f"Invoice placed on hold ({cid})."
     elif "FRAUD" in act:
         return f"Case flagged for fraud review ({cid})."
-    elif "RUN_PIPELINE" in act or "INVESTIGATION" in act:
+    elif "PIPELINE" in act or "INVESTIGAT" in act:
         return f"Investigation completed for case {cid}."
     elif "CREATE" in act or "INGEST" in act:
         return f"Invoice received into operational queue ({cid})."
-    return f"{act.replace('_', ' ').title()} for case {cid}."
+
+    clean_act = act.replace("APPROVAL_STATUS_", "").replace("_", " ").title()
+    return f"{clean_act} recorded for case {cid}."
+
+
+def format_clean_vendor_lesson(les: dict) -> dict:
+    """Transforms raw memory strings into clean business-readable lessons."""
+    raw_topic = les.get("topic") or "Supplier Experience"
+    raw_lesson = les.get("lesson") or les.get("lesson_content") or ""
+
+    clean_topic = raw_topic
+    if "Lesson on" in clean_topic:
+        if "Price" in clean_topic or "rate" in clean_topic.lower():
+            clean_topic = "Price Adjustment Verification"
+        elif "Quantity" in clean_topic or "Partial" in clean_topic.lower():
+            clean_topic = "Partial Delivery Hold Terms"
+        elif "Matching" in clean_topic or "Clean" in clean_topic.lower():
+            clean_topic = "Line-Item Verification"
+        else:
+            clean_topic = "Supplier Exception Insight"
+
+    clean_lesson = raw_lesson
+    if "CONFIRMED RESOLUTION LESSON for" in clean_lesson:
+        clean_lesson = clean_lesson.split(": ", 1)[-1]
+        clean_lesson = clean_lesson.replace("confirmed that ", "").replace("Retain this evidence-checking pattern.", "")
+    elif "HUMAN CORRECTION LESSON for" in clean_lesson:
+        if "notes: '" in clean_lesson:
+            notes = clean_lesson.split("notes: '")[1].split("'")[0]
+            clean_lesson = f"Supervisor instruction: {notes} Physical goods receipts and approval must be confirmed prior to payment."
+        else:
+            clean_lesson = clean_lesson.split(":", 1)[-1].strip()
+
+    clean_lesson = clean_lesson.replace("APPLY_AMENDMENT", "amendment application")
+    clean_lesson = clean_lesson.replace("REQUEST_CORRECTION", "correction request")
+
+    return {"topic": clean_topic, "lesson": clean_lesson}
 
 
 # --- PLOTLY CHART HELPERS FOR REPORTS PAGE ---
@@ -106,12 +140,12 @@ def render_plotly_horizontal_bar(categories, values, title="", color="#2563eb", 
 def render_home_page():
     # 1. Branding Header
     st.markdown("""
-    <div style="margin-bottom: 16px;">
+    <div style="margin-bottom: 14px;">
         <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 28px; font-weight: 800; color: #0f172a; letter-spacing: 0.02em;">VAULTY</div>
+            <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 26px; font-weight: 800; color: #0f172a; letter-spacing: 0.02em;">VAULTY</div>
             <span style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em;">AI Exception Intelligence</span>
         </div>
-        <div style="font-size: 13.5px; font-style: italic; color: #64748b; margin-top: 2px;">Investigate. Resolve. Remember.</div>
+        <div style="font-size: 13px; font-style: italic; color: #64748b; margin-top: 2px;">Investigate. Resolve. Remember.</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -128,9 +162,9 @@ def render_home_page():
     else:
         headline = "You're all caught up."
 
-    st.markdown(f'<div class="page-subtitle" style="font-size: 16px; font-weight: 700; color: #0f172a;">{headline}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 16px;">{headline}</div>', unsafe_allow_html=True)
 
-    # 3. Clean Summary Cards (from existing data/service layer)
+    # 3. Clean Summary Cards
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         render_stat_tile("Needs your approval", str(needing_app_cnt), "Awaiting payment signoff", "#d97706")
@@ -142,13 +176,13 @@ def render_home_page():
         extra_amt = metrics.get("extra_amount_identified", 0.0)
         render_stat_tile("Extra amount identified", f"₹{extra_amt:,.0f}", "Total monetary overbilling", "#7c3aed")
 
-    st.markdown("<br/>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
     # 4. Primary CTA: Start Investigation
     st.markdown("""
-    <div class="vaulty-card" style="border-left: 4px solid #2563eb; margin-bottom: 24px;">
-        <div style="font-size: 15px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">+ Start investigation</div>
-        <div style="font-size: 13px; color: #64748b; margin-bottom: 14px;">
+    <div class="vaulty-card" style="border-left: 4px solid #2563eb; margin-bottom: 18px; padding: 16px 20px;">
+        <div style="font-size: 15px; font-weight: 800; color: #0f172a; margin-bottom: 2px;">+ Start investigation</div>
+        <div style="font-size: 12.5px; color: #64748b; margin-bottom: 12px;">
             Enter an Invoice ID or Case ID to review evidence against purchase orders, receipts, contract terms, and organizational experience.
         </div>
     """, unsafe_allow_html=True)
@@ -180,8 +214,8 @@ def render_home_page():
     # 5. RECENT ACTIVITY (FILTERED FOR PLAIN BUSINESS EVENTS ONLY - NO TECHNICAL LOGS)
     with col_left:
         st.markdown('<div class="vaulty-card" style="height: 100%;">', unsafe_allow_html=True)
-        st.markdown("<div style='font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 4px;'>Recent Activity</div>", unsafe_allow_html=True)
-        st.markdown("<div style='font-size: 12.5px; color: #64748b; margin-bottom: 14px;'>Recent business events across invoice exceptions.</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size: 14.5px; font-weight: 700; color: #0f172a; margin-bottom: 2px;'>Recent Activity</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size: 12px; color: #64748b; margin-bottom: 12px;'>Recent business events across invoice exceptions.</div>", unsafe_allow_html=True)
 
         logs = biz_repo.get_audit_logs()
         biz_logs = [l for l in logs if is_business_event(l)] if logs and isinstance(logs, list) else []
@@ -192,9 +226,9 @@ def render_home_page():
                 desc = format_business_event_desc(item)
 
                 st.markdown(f"""
-                <div style="background: #f8fafc; border: 1px solid #f1f5f9; border-left: 3px solid #2563eb; padding: 10px 12px; margin-bottom: 8px; border-radius: 6px;">
-                    <div style="font-size: 11px; font-weight: 700; color: #64748b;">{dt}</div>
-                    <div style="font-size: 13px; font-weight: 600; color: #0f172a; margin-top: 2px;">{desc}</div>
+                <div style="background: #f8fafc; border: 1px solid #f1f5f9; border-left: 3px solid #2563eb; padding: 8px 12px; margin-bottom: 6px; border-radius: 6px;">
+                    <div style="font-size: 10.5px; font-weight: 700; color: #64748b;">{dt}</div>
+                    <div style="font-size: 12.5px; font-weight: 600; color: #0f172a; margin-top: 2px;">{desc}</div>
                 </div>
                 """, unsafe_allow_html=True)
         else:
@@ -204,8 +238,8 @@ def render_home_page():
     # 6. RECENT INVESTIGATIONS (Real Cases Table)
     with col_right:
         st.markdown('<div class="vaulty-card" style="height: 100%;">', unsafe_allow_html=True)
-        st.markdown("<div style='font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 4px;'>Recent Investigations</div>", unsafe_allow_html=True)
-        st.markdown("<div style='font-size: 12.5px; color: #64748b; margin-bottom: 14px;'>Active exception cases in the operational queue.</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size: 14.5px; font-weight: 700; color: #0f172a; margin-bottom: 2px;'>Recent Investigations</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size: 12px; color: #64748b; margin-bottom: 12px;'>Active exception cases in the operational queue.</div>", unsafe_allow_html=True)
 
         all_cases = biz_repo.get_all_cases()
         if all_cases and isinstance(all_cases, list):
@@ -222,12 +256,12 @@ def render_home_page():
                 c_info, c_btn = st.columns([4, 1])
                 with c_info:
                     st.markdown(f"""
-                    <div style="border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 8px;">
+                    <div style="border-bottom: 1px solid #f1f5f9; padding-bottom: 6px; margin-bottom: 6px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 13.5px; font-weight: 700; color: #0f172a;">{vname} ({inv_id})</span>
+                            <span style="font-size: 13px; font-weight: 700; color: #0f172a;">{vname} ({inv_id})</span>
                             {pill_html}
                         </div>
-                        <div style="font-size: 12px; color: #475569; margin-top: 3px;">
+                        <div style="font-size: 11.5px; color: #475569; margin-top: 2px;">
                             <strong>Issue:</strong> {issue} &nbsp;|&nbsp; <strong>Amount:</strong> ₹{amt:,.2f}
                         </div>
                     </div>
@@ -313,20 +347,22 @@ def render_approvals_page():
             cid = c.get("case_id")
             vname = c.get("vendor_name")
             inv_id = c.get("invoice_id")
-            po_id = c.get("po_id")
             inv_amt = c.get("amount", 0.0)
             status = c.get("status")
             risk = c.get("risk_level", "Medium")
             last_action = c.get("last_action", "Pending inspection")
             updated = c.get("updated_at", c.get("created_at", "Today"))[:10]
 
-            po = biz_repo.get_purchase_order(po_id) if po_id else {}
             inv = biz_repo.get_invoice(inv_id) if inv_id else {}
+            po_id = c.get("po_id") or (inv.get("po_id") if isinstance(inv, dict) and "error" not in inv else None)
+            po = biz_repo.get_purchase_order(po_id) if po_id else {}
             rec = biz_repo.get_receipt(po_id) if po_id else {}
-            po_amt = po.get("total_amount", 0.0) if isinstance(po, dict) and "total_amount" in po else 0.0
+
+            po_available = isinstance(po, dict) and "error" not in po and po
+            po_amt = po.get("total_amount", 0.0) if po_available else None
 
             diff = calculate_difference(inv, po, rec)
-            if diff == 0.0 and inv_amt > po_amt and po_amt > 0:
+            if diff == 0.0 and po_amt is not None and inv_amt > po_amt and po_amt > 0:
                 diff = inv_amt - po_amt
 
             norm_discrepancy = normalize_discrepancy_type(c.get("discrepancy_type", ""))
@@ -334,13 +370,19 @@ def render_approvals_page():
 
             col_info, col_btn = st.columns([5, 1])
             with col_info:
-                diff_str = f"₹{diff:,.2f}" if diff > 0 else "₹0.00"
+                if not po_available:
+                    diff_str_html = '<span style="color: #d97706; font-weight: 700;">Purchase order not available</span>'
+                    po_amt_str = "Not available"
+                else:
+                    po_amt_str = f"₹{po_amt:,.2f}"
+                    diff_str_html = f'<span style="color: {"#dc2626" if diff > 0 else "#16a34a"}; font-weight: 700;">₹{diff:,.2f}</span>'
+
                 st.markdown(f"""
                 <div class="vaulty-card" style="margin-bottom: 8px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
                             <span style="font-size: 15px; font-weight: 800; color: #0f172a;">{vname}</span>
-                            <span style="font-size: 13px; color: #64748b; margin-left: 10px;">Invoice: {inv_id} | PO: {po_id or 'N/A'}</span>
+                            <span style="font-size: 13px; color: #64748b; margin-left: 10px;">Invoice: {inv_id} | PO: {po_id or 'Not available'}</span>
                         </div>
                         <div>
                             {pill_html}
@@ -350,8 +392,8 @@ def render_approvals_page():
                     <div style="margin-top: 8px; font-size: 13px; color: #334155;">
                         <strong>Issue:</strong> {norm_discrepancy} &nbsp;|&nbsp; 
                         <strong>Invoice Amt:</strong> ₹{inv_amt:,.2f} &nbsp;|&nbsp; 
-                        <strong>PO Amt:</strong> ₹{po_amt:,.2f} &nbsp;|&nbsp; 
-                        <strong>Difference:</strong> <span style="color: {'#dc2626' if diff > 0 else '#16a34a'}; font-weight: 700;">{diff_str}</span>
+                        <strong>PO Amt:</strong> {po_amt_str} &nbsp;|&nbsp; 
+                        <strong>Difference:</strong> {diff_str_html}
                     </div>
                     <div style="margin-top: 4px; font-size: 12px; color: #64748b;">
                         <strong>Last Action:</strong> {last_action} &nbsp;|&nbsp; <strong>Date:</strong> {updated}
@@ -399,7 +441,12 @@ def render_case_detail_view(case_id: str):
     issue = case_data.get("discrepancy_type", "Invoice Exception")
     amount = case_data.get("amount", 0.0)
     status = case_data.get("status", "UNPROCESSED")
-    po_id = case_data.get("po_id")
+
+    inv_doc = biz_repo.get_invoice(inv_id) if inv_id else {}
+    po_id = case_data.get("po_id") or (inv_doc.get("po_id") if isinstance(inv_doc, dict) and "error" not in inv_doc else None)
+    po_doc = biz_repo.get_purchase_order(po_id) if po_id else {}
+    rec_doc = biz_repo.get_receipt(po_id) if po_id else {}
+    contract_doc = biz_repo.get_contract(vendor_id) if vendor_id else {}
 
     prev_nav = st.session_state.get("previous_nav", "Approvals")
     if st.button(f"← Back to {prev_nav}"):
@@ -412,11 +459,6 @@ def render_case_detail_view(case_id: str):
     # CASE HEADER
     # --------------------------------------------------
     pill_html = render_status_pill(status)
-    po_doc = biz_repo.get_purchase_order(po_id) if po_id else {}
-    inv_doc = biz_repo.get_invoice(inv_id) if inv_id else {}
-    rec_doc = biz_repo.get_receipt(po_id) if po_id else {}
-    contract_doc = biz_repo.get_contract(vendor_id) if vendor_id else {}
-
     po_available = isinstance(po_doc, dict) and "error" not in po_doc and po_doc
     po_amt = po_doc.get("total_amount", 0.0) if po_available else None
 
@@ -862,31 +904,30 @@ def render_vendors_page():
             render_empty_state("No recurring discrepancy issues identified for this supplier.", "No Recurring Patterns")
 
     with col_side:
-        # WHAT VAULTY HAS LEARNED (CRITICAL ISSUE #3: STRICTLY DEDUPLICATED LESSONS)
+        # WHAT VAULTY HAS LEARNED (CLEAN BUSINESS-READY LESSONS)
         st.markdown("### WHAT VAULTY HAS LEARNED")
         st.markdown('<div style="font-size: 12.5px; color: #64748b; margin-bottom: 12px;">Accumulated organizational experience for this supplier.</div>', unsafe_allow_html=True)
 
         raw_lessons = mem_repo.get_vendor_memory(vid)
-        
-        # Deduplicate lessons by normalized content text
+
+        # Clean and deduplicate lessons
         deduped_lessons = []
         seen_texts = set()
+
         if raw_lessons and isinstance(raw_lessons, list):
             for les in raw_lessons:
-                l_text = les.get("lesson") or les.get("lesson_content") or ""
-                normalized_text = l_text.strip().lower()
+                cleaned = format_clean_vendor_lesson(les)
+                normalized_text = cleaned["lesson"].strip().lower()
                 if normalized_text and normalized_text not in seen_texts:
                     seen_texts.add(normalized_text)
-                    deduped_lessons.append(les)
+                    deduped_lessons.append(cleaned)
 
         if deduped_lessons:
             for les in deduped_lessons:
-                topic = les.get('topic') or "Supplier Experience"
-                l_content = les.get('lesson') or les.get('lesson_content')
                 st.markdown(f"""
                 <div class="insight-card">
-                    <div class="insight-card-title">{topic}</div>
-                    <div class="insight-card-body">"{l_content}"</div>
+                    <div class="insight-card-title">{les['topic']}</div>
+                    <div class="insight-card-body">"{les['lesson']}"</div>
                 </div>
                 """, unsafe_allow_html=True)
         else:
@@ -937,7 +978,7 @@ def render_reports_page():
 
     st.markdown("<br/>", unsafe_allow_html=True)
 
-    # Discrepancy Scenarios Table & Charts (CRITICAL ISSUE #4: CLEAN RENDERING OR EMPTY STATE)
+    # Discrepancy Scenarios Table & Charts (NO "undefined" OR BLANK CONTAINERS)
     breakdown = analytics.get_discrepancy_breakdown()
     if breakdown and isinstance(breakdown, list) and len(breakdown) > 0:
         df_bd = pd.DataFrame(breakdown)
@@ -951,17 +992,23 @@ def render_reports_page():
         with col_c1:
             st.markdown('<div class="vaulty-card">', unsafe_allow_html=True)
             st.markdown("<div style='font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 10px;'>Case Count by Exception Type</div>", unsafe_allow_html=True)
-            cats = [b["discrepancy_type"] for b in breakdown]
-            vals = [b["case_count"] for b in breakdown]
-            render_plotly_horizontal_bar(cats, vals, color="#2563eb", height=240)
+            cats = [b["discrepancy_type"] for b in breakdown if b.get("discrepancy_type")]
+            vals = [b["case_count"] for b in breakdown if b.get("discrepancy_type")]
+            if cats and vals:
+                render_plotly_horizontal_bar(cats, vals, color="#2563eb", height=240)
+            else:
+                render_empty_state("No exception case breakdown data available.", "No Chart Data")
             st.markdown("</div>", unsafe_allow_html=True)
 
         with col_c2:
             st.markdown('<div class="vaulty-card">', unsafe_allow_html=True)
             st.markdown("<div style='font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 10px;'>Financial Overbilling Impact (₹)</div>", unsafe_allow_html=True)
-            cats = [b["discrepancy_type"] for b in breakdown]
-            vals = [b["total_difference"] for b in breakdown]
-            render_plotly_horizontal_bar(cats, vals, color="#dc2626", is_currency=True, height=240)
+            cats = [b["discrepancy_type"] for b in breakdown if b.get("discrepancy_type")]
+            vals = [b["total_difference"] for b in breakdown if b.get("discrepancy_type")]
+            if cats and vals:
+                render_plotly_horizontal_bar(cats, vals, color="#dc2626", is_currency=True, height=240)
+            else:
+                render_empty_state("No financial impact breakdown data available.", "No Chart Data")
             st.markdown("</div>", unsafe_allow_html=True)
     else:
         render_empty_state("No discrepancy scenarios recorded.", "No Breakdown Data")
