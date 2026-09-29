@@ -82,6 +82,9 @@ class InvestigationPipeline:
                 "vendor_history": vendor_hist,
                 "amendments": amendments
             },
+            "memory_recall": investigation_result.get("memory_recall", []),
+            "memory_reflection": investigation_result.get("memory_reflection", {}),
+            "memory_influence": investigation_result.get("memory_influence", {}),
             "stage_5_investigation": investigation_result,
             "stage_6_resolution": resolution_result,
             "stage_7_human_gate": orchestrator_result
@@ -95,7 +98,8 @@ class InvestigationPipeline:
         discrepancy_type: str,
         agent_recommendation: str,
         human_outcome: str,
-        human_notes: str = ""
+        human_notes: str = "",
+        investigation_result: dict = None
     ) -> dict:
         """Stage 9: Reflection from human decision"""
         return self.reflection_agent.reflect_and_learn(
@@ -105,5 +109,6 @@ class InvestigationPipeline:
             discrepancy_type=discrepancy_type,
             agent_recommendation=agent_recommendation,
             human_outcome=human_outcome,
-            human_notes=human_notes
+            human_notes=human_notes,
+            investigation_result=investigation_result
         )

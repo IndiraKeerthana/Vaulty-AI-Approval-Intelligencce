@@ -1,14 +1,41 @@
 [
   {
-    "lesson_id": "LES-1790701794",
+    "lesson_id": "vaulty-case-VX-2002",
+    "document_id": "vaulty-case-VX-2002",
     "vendor_id": "VND-002",
     "vendor_name": "ACME Corp",
-    "topic": "Lesson on ACME Corp (Price mismatch (\u20b9550 vs \u20b9500 PO))",
-    "lesson": "HUMAN CORRECTION LESSON for ACME Corp: On case VX-2002, agent recommended 'DRAFT_VENDOR_QUERY', but human supervisor CORRECTED it with notes: 'Verify receipt before releasing payment.'. Future investigations must verify physical goods receipts and explicit approval before recommending resolution.",
+    "topic": "AP Experience on ACME Corp (Price mismatch (\u20b9550 vs \u20b9500 PO))",
+    "lesson": "Vaulty investigated case VX-2002 for vendor ACME Corp (VND-002). Invoice INV-2002 billed \u20b955,000.00 with discrepancy: Price mismatch (\u20b9550 vs \u20b9500 PO). Purchase order PO-2002 authorized \u20b950,000.00 (unit price \u20b9500.0). Goods receipt REC-2002 confirmed full physical delivery. No approved amendment existed for PO PO-2002. Findings: Investigation completed for INV-2002. Exception: Price mismatch. Recommended Action: DRAFT_VENDOR_QUERY.. Memory verdict was CONTRADICTED. Vaulty recommended DRAFT_VENDOR_QUERY. Human reviewer decided: CORRECTED (Reason: 'Verify receipt before releasing payment.'). Final outcome: Invoice placed on hold / correction requested: 'Verify receipt before releasing payment.'. Learning: When variance lacks an approved amendment or verified goods receipt for ACME Corp, hold payment and verify before approval.",
+    "text": "Vaulty investigated case VX-2002 for vendor ACME Corp (VND-002). Invoice INV-2002 billed \u20b955,000.00 with discrepancy: Price mismatch (\u20b9550 vs \u20b9500 PO). Purchase order PO-2002 authorized \u20b950,000.00 (unit price \u20b9500.0). Goods receipt REC-2002 confirmed full physical delivery. No approved amendment existed for PO PO-2002. Findings: Investigation completed for INV-2002. Exception: Price mismatch. Recommended Action: DRAFT_VENDOR_QUERY.. Memory verdict was CONTRADICTED. Vaulty recommended DRAFT_VENDOR_QUERY. Human reviewer decided: CORRECTED (Reason: 'Verify receipt before releasing payment.'). Final outcome: Invoice placed on hold / correction requested: 'Verify receipt before releasing payment.'. Learning: When variance lacks an approved amendment or verified goods receipt for ACME Corp, hold payment and verify before approval.",
     "source_case_id": "VX-2002",
     "human_feedback_type": "HUMAN_CORRECTION",
+    "tags": [
+      "source:vaulty",
+      "type:ap_exception",
+      "vendor:VND-002",
+      "discrepancy:price_mismatch"
+    ],
+    "metadata": {
+      "case_id": "VX-2002",
+      "vendor_id": "VND-002",
+      "vendor_name": "ACME Corp",
+      "invoice_id": "INV-2002",
+      "discrepancy_type": "Price mismatch (\u20b9550 vs \u20b9500 PO)",
+      "invoice_amount": 55000.0,
+      "po_id": "PO-2002",
+      "po_amount": 50000.0,
+      "receipt_summary": "Goods receipt REC-2002 confirmed full physical delivery.",
+      "amendment_summary": "No approved amendment existed for PO PO-2002.",
+      "investigation_findings": "Investigation completed for INV-2002. Exception: Price mismatch. Recommended Action: DRAFT_VENDOR_QUERY.",
+      "memory_verdict": "CONTRADICTED",
+      "recommended_resolution": "DRAFT_VENDOR_QUERY",
+      "human_decision": "CORRECTED",
+      "human_reason": "Verify receipt before releasing payment.",
+      "final_outcome": "Invoice placed on hold / correction requested: 'Verify receipt before releasing payment.'.",
+      "timestamp": "2026-09-29 23:51:17"
+    },
     "confidence_score": 0.95,
-    "created_at": "2026-09-29 22:39:54"
+    "created_at": "2026-09-29 23:51:17"
   },
   {
     "lesson_id": "LES-1790701794",
@@ -20,6 +47,44 @@
     "human_feedback_type": "HUMAN_CORRECTION",
     "confidence_score": 0.95,
     "created_at": "2026-09-29 22:39:54"
+  },
+  {
+    "lesson_id": "vaulty-case-VX-2001",
+    "document_id": "vaulty-case-VX-2001",
+    "vendor_id": "VND-002",
+    "vendor_name": "ACME Corp",
+    "topic": "AP Experience on ACME Corp (Price mismatch (\u20b9550 vs \u20b9500 PO))",
+    "lesson": "Vaulty investigated case VX-2001 for vendor ACME Corp (VND-002). Invoice INV-2001 billed \u20b955,000.00 with discrepancy: Price mismatch (\u20b9550 vs \u20b9500 PO). Purchase order PO-2001 authorized \u20b950,000.00 (unit price \u20b9500.0). Goods receipt REC-2001 confirmed full physical delivery. Approved amendment AM-17 existed revising unit rate to \u20b9550.00. Findings: Investigation completed for INV-2001. Exception: Price mismatch. Recommended Action: APPLY_AMENDMENT.. Memory verdict was CONFIRMED. Vaulty recommended APPLY_AMENDMENT. Human reviewer decided: APPROVED (Reason: 'Approved payment release after verifying signed amendment AM-17.'). Final outcome: Payment release approved by authorized human reviewer. Learning: When ACME Corp price or terms are backed by verified approved amendments, payment release is appropriate.",
+    "text": "Vaulty investigated case VX-2001 for vendor ACME Corp (VND-002). Invoice INV-2001 billed \u20b955,000.00 with discrepancy: Price mismatch (\u20b9550 vs \u20b9500 PO). Purchase order PO-2001 authorized \u20b950,000.00 (unit price \u20b9500.0). Goods receipt REC-2001 confirmed full physical delivery. Approved amendment AM-17 existed revising unit rate to \u20b9550.00. Findings: Investigation completed for INV-2001. Exception: Price mismatch. Recommended Action: APPLY_AMENDMENT.. Memory verdict was CONFIRMED. Vaulty recommended APPLY_AMENDMENT. Human reviewer decided: APPROVED (Reason: 'Approved payment release after verifying signed amendment AM-17.'). Final outcome: Payment release approved by authorized human reviewer. Learning: When ACME Corp price or terms are backed by verified approved amendments, payment release is appropriate.",
+    "source_case_id": "VX-2001",
+    "human_feedback_type": "HUMAN_APPROVAL",
+    "tags": [
+      "source:vaulty",
+      "type:ap_exception",
+      "vendor:VND-002",
+      "discrepancy:price_mismatch"
+    ],
+    "metadata": {
+      "case_id": "VX-2001",
+      "vendor_id": "VND-002",
+      "vendor_name": "ACME Corp",
+      "invoice_id": "INV-2001",
+      "discrepancy_type": "Price mismatch (\u20b9550 vs \u20b9500 PO)",
+      "invoice_amount": 55000.0,
+      "po_id": "PO-2001",
+      "po_amount": 50000.0,
+      "receipt_summary": "Goods receipt REC-2001 confirmed full physical delivery.",
+      "amendment_summary": "Approved amendment AM-17 existed revising unit rate to \u20b9550.00.",
+      "investigation_findings": "Investigation completed for INV-2001. Exception: Price mismatch. Recommended Action: APPLY_AMENDMENT.",
+      "memory_verdict": "CONFIRMED",
+      "recommended_resolution": "APPLY_AMENDMENT",
+      "human_decision": "APPROVED",
+      "human_reason": "Approved payment release after verifying signed amendment AM-17.",
+      "final_outcome": "Payment release approved by authorized human reviewer.",
+      "timestamp": "2026-09-29 23:23:02"
+    },
+    "confidence_score": 0.95,
+    "created_at": "2026-09-29 23:23:02"
   },
   {
     "lesson_id": "LES-1790701448",
@@ -33,26 +98,42 @@
     "created_at": "2026-09-29 22:34:08"
   },
   {
-    "lesson_id": "LES-1790701448",
+    "lesson_id": "vaulty-case-VX-TEST-888",
+    "document_id": "vaulty-case-VX-TEST-888",
     "vendor_id": "VND-002",
     "vendor_name": "ACME Corp",
-    "topic": "Lesson on ACME Corp (Price mismatch (\u20b9550 vs \u20b9500 PO))",
-    "lesson": "CONFIRMED RESOLUTION LESSON for ACME Corp: Payment approval on case VX-2001 confirmed that line-item verification and amendment validation was accurate. Retain this evidence-checking pattern.",
-    "source_case_id": "VX-2001",
-    "human_feedback_type": "HUMAN_APPROVAL",
-    "confidence_score": 0.95,
-    "created_at": "2026-09-29 22:34:08"
-  },
-  {
-    "lesson_id": "LES-1790701248",
-    "vendor_id": "VND-002",
-    "vendor_name": "ACME Corp",
-    "topic": "Lesson on ACME Corp (Price mismatch)",
-    "lesson": "HUMAN CORRECTION LESSON for ACME Corp: On case VX-TEST-888, agent recommended 'APPLY_AMENDMENT', but human supervisor CORRECTED it with notes: 'Supervisor correction: Check warehouse delivery receipt before releasing payment.'. Future investigations must verify physical goods receipts and explicit approval before recommending resolution.",
+    "topic": "AP Experience on ACME Corp (Price mismatch)",
+    "lesson": "Vaulty investigated case VX-TEST-888 for vendor ACME Corp (VND-002). Invoice  billed \u20b90.00 with discrepancy: Price mismatch. Purchase order  authorized \u20b90.00 (unit price \u20b9None). No warehouse goods receipt recorded. No approved amendment existed for PO . Findings: Discrepancy analyzed against  and amendments.. Memory verdict was CONTRADICTED. Vaulty recommended APPLY_AMENDMENT. Human reviewer decided: CORRECTED (Reason: 'Supervisor correction: Check warehouse delivery receipt before releasing payment.'). Final outcome: Invoice placed on hold / correction requested: 'Supervisor correction: Check warehouse delivery receipt before releasing payment.'. Learning: When variance lacks an approved amendment or verified goods receipt for ACME Corp, hold payment and verify before approval.",
+    "text": "Vaulty investigated case VX-TEST-888 for vendor ACME Corp (VND-002). Invoice  billed \u20b90.00 with discrepancy: Price mismatch. Purchase order  authorized \u20b90.00 (unit price \u20b9None). No warehouse goods receipt recorded. No approved amendment existed for PO . Findings: Discrepancy analyzed against  and amendments.. Memory verdict was CONTRADICTED. Vaulty recommended APPLY_AMENDMENT. Human reviewer decided: CORRECTED (Reason: 'Supervisor correction: Check warehouse delivery receipt before releasing payment.'). Final outcome: Invoice placed on hold / correction requested: 'Supervisor correction: Check warehouse delivery receipt before releasing payment.'. Learning: When variance lacks an approved amendment or verified goods receipt for ACME Corp, hold payment and verify before approval.",
     "source_case_id": "VX-TEST-888",
     "human_feedback_type": "HUMAN_CORRECTION",
+    "tags": [
+      "source:vaulty",
+      "type:ap_exception",
+      "vendor:VND-002",
+      "discrepancy:price_mismatch"
+    ],
+    "metadata": {
+      "case_id": "VX-TEST-888",
+      "vendor_id": "VND-002",
+      "vendor_name": "ACME Corp",
+      "invoice_id": "",
+      "discrepancy_type": "Price mismatch",
+      "invoice_amount": 0.0,
+      "po_id": "",
+      "po_amount": 0.0,
+      "receipt_summary": "No warehouse goods receipt recorded.",
+      "amendment_summary": "No approved amendment existed for PO .",
+      "investigation_findings": "Discrepancy analyzed against  and amendments.",
+      "memory_verdict": "CONTRADICTED",
+      "recommended_resolution": "APPLY_AMENDMENT",
+      "human_decision": "CORRECTED",
+      "human_reason": "Supervisor correction: Check warehouse delivery receipt before releasing payment.",
+      "final_outcome": "Invoice placed on hold / correction requested: 'Supervisor correction: Check warehouse delivery receipt before releasing payment.'.",
+      "timestamp": "2026-09-29 23:22:57"
+    },
     "confidence_score": 0.95,
-    "created_at": "2026-09-29 22:30:48"
+    "created_at": "2026-09-29 23:22:57"
   },
   {
     "lesson_id": "LES-1790701248",

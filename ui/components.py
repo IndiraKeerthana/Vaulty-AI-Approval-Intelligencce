@@ -284,63 +284,114 @@ def render_verification_path():
     st.markdown(html, unsafe_allow_html=True)
 
 
-def render_signature_memory_panel(analysis: dict):
+def render_signature_memory_panel(analysis: dict, memory_influence: dict = None, human_outcome: str = None):
     """
     SECTION 3 — VAULTY REMEMBERED (SIGNATURE MEMORY PANEL)
     Dedicated Vaulty violet accent treatment (#7c3aed).
     Communicates memory is EXPERIENCE, not proof.
-    Zero AI jargon or technical terms.
+    Displays:
+    - Past experience
+    - Current evidence
+    - Memory verdict (✓ CONFIRMED, ⚠ CONTRADICTED BY CURRENT EVIDENCE, — INSUFFICIENT)
+    - WHY (explanation)
+    - ADAPTED DECISION
+    - If CONTRADICTED: "Evidence overrides memory."
+    - Visible Learning Loop: RECALLED → VERIFIED → LEARNED
     """
-    if not analysis or not isinstance(analysis, dict) or not any(analysis.values()):
-        html = """
-        <div class="vaulty-signature-memory-panel">
-            <div class="memory-header-title">
-                <span>VAULTY REMEMBERED</span>
-                <span class="memory-verdict-tag verdict-new">No Prior Record</span>
-            </div>
-            <div style="margin-top: 10px; font-size: 13.5px; color: #475569;">
-                No relevant past experience found.
-            </div>
-        </div>
-        """
+    data = memory_influence or analysis or {}
+    if not data or not isinstance(data, dict) or not any(data.values()):
+        html = (
+            '<div class="vaulty-signature-memory-panel">'
+            '<div class="memory-header-title">'
+            '<span>VAULTY REMEMBERED</span>'
+            '<span class="memory-verdict-tag verdict-new">— INSUFFICIENT</span>'
+            '</div>'
+            '<div style="margin-top: 6px; font-size: 11.5px; font-weight: 700; color: #6d28d9; letter-spacing: 0.02em;">'
+            'Memory status: RECALLED: No prior experience → Human approves → LEARNED'
+            '</div>'
+            '<div style="margin-top: 10px; font-size: 13.5px; color: #475569;">'
+            'No relevant past experience found. Investigation is decided solely on primary records.'
+            '</div>'
+            '</div>'
+        )
         st.markdown(html, unsafe_allow_html=True)
         return
 
-    verdict_raw = str(analysis.get("confirmation_or_contradiction", "NOT_APPLICABLE"))
+    verdict_raw = str(data.get("status") or data.get("confirmation_or_contradiction") or "INSUFFICIENT").upper()
 
-    if "CONTRADICT" in verdict_raw.upper():
-        verdict_tag = '<span class="memory-verdict-tag verdict-mismatch">Past Experience Contradicted by Current Evidence</span>'
-    elif "CONFIRM" in verdict_raw.upper():
-        verdict_tag = '<span class="memory-verdict-tag verdict-match">Past Experience Confirmed by Current Evidence</span>'
+    if "CONTRADICT" in verdict_raw:
+        verdict_tag = '<span class="memory-verdict-tag verdict-mismatch">⚠ CONTRADICTED BY CURRENT EVIDENCE</span>'
+        verdict_key = "CONTRADICTED"
+    elif "CONFIRM" in verdict_raw:
+        verdict_tag = '<span class="memory-verdict-tag verdict-match">✓ CONFIRMED</span>'
+        verdict_key = "CONFIRMED"
     else:
-        verdict_tag = '<span class="memory-verdict-tag verdict-new">First-Time Pattern</span>'
+        verdict_tag = '<span class="memory-verdict-tag verdict-new">— INSUFFICIENT</span>'
+        verdict_key = "INSUFFICIENT"
 
-    past_exp = analysis.get("memory_recalled") or "Vaulty reviewed organizational records for prior vendor pricing patterns."
-    curr_evid = analysis.get("current_evidence") or "Verified current invoice line items against PO, Delivery Receipt, and Contract Amendment log."
-    means_text = analysis.get("final_adaptation") or "Proceeding based on verified current evidence."
+    past_exp = data.get("past_experience") or data.get("memory_recalled") or "No prior exception resolutions found."
+    curr_evid = data.get("current_evidence") or "Verified current invoice line items against PO, Delivery Receipt, and Contract Amendment log."
+    why_reason = data.get("reason") or data.get("memory_explanation") or "Current evidence checked against recalled patterns."
+    adapted_decision = data.get("adapted_decision") or data.get("final_adaptation") or "Proceeding based on verified current evidence."
 
-    html = f"""
-    <div class="vaulty-signature-memory-panel">
-        <div class="memory-header-title">
-            <span>VAULTY REMEMBERED</span>
-            {verdict_tag}
-        </div>
-        <div class="memory-stage-grid">
-            <div class="memory-stage-box">
-                <div class="memory-stage-title">Past Experience</div>
-                <div class="memory-stage-content">{past_exp}</div>
-            </div>
-            <div class="memory-stage-box">
-                <div class="memory-stage-title">Current Evidence</div>
-                <div class="memory-stage-content">{curr_evid}</div>
-            </div>
-            <div class="memory-stage-box" style="background: #fcf5ff; border-color: #ddd6fe;">
-                <div class="memory-stage-title" style="color: #6d28d9;">What This Means</div>
-                <div class="memory-stage-content" style="font-weight: 600; color: #4c1d95;">{means_text}</div>
-            </div>
-        </div>
-    </div>
-    """
+    # Construct dynamic visible learning loop status indicator
+    if verdict_key == "CONFIRMED":
+        if human_outcome == "APPROVED":
+            loop_text = "RECALLED: Relevant prior resolution retrieved → Current amendment verified → MEMORY CONFIRMED → Human approved → LEARNED"
+        else:
+            loop_text = "RECALLED: Relevant prior resolution retrieved → Current amendment verified → MEMORY CONFIRMED"
+    elif verdict_key == "CONTRADICTED":
+        if human_outcome in ("CORRECTED", "ON_HOLD", "HELD"):
+            loop_text = "RECALLED: Prior resolution retrieved → Current evidence conflicts → MEMORY CONTRADICTED → EVIDENCE OVERRIDES MEMORY → Human held → LEARNED"
+        else:
+            loop_text = "RECALLED: Prior resolution retrieved → Current evidence conflicts → MEMORY CONTRADICTED → EVIDENCE OVERRIDES MEMORY"
+    else:
+        if human_outcome:
+            loop_text = f"RECALLED: No prior experience → Primary evidence decided → Human decision ({human_outcome}) → LEARNED"
+        else:
+            loop_text = "RECALLED: No relevant prior experience → Primary evidence decides → LEARNED UPON DECISION"
+
+    override_banner = ""
+    if verdict_key == "CONTRADICTED":
+        override_banner = (
+            '<div style="margin-top: 14px; padding: 12px 16px; background: #fef2f2; '
+            'border: 1px solid #fecaca; border-left: 4px solid #dc2626; border-radius: 6px; '
+            'color: #991b1b; font-weight: 800; font-size: 13.5px; display: flex; align-items: center; gap: 8px;">'
+            '<span style="font-size: 16px;">⚠</span>'
+            '<span>Evidence overrides memory.</span>'
+            '</div>'
+        )
+
+    html = (
+        f'<div class="vaulty-signature-memory-panel">'
+        f'<div class="memory-header-title">'
+        f'<span>VAULTY REMEMBERED</span>'
+        f'{verdict_tag}'
+        f'</div>'
+        f'<div style="margin-top: 6px; font-size: 11.5px; font-weight: 700; color: #6d28d9; letter-spacing: 0.02em;">'
+        f'Memory status: {loop_text}'
+        f'</div>'
+        f'<div class="memory-stage-grid">'
+        f'<div class="memory-stage-box">'
+        f'<div class="memory-stage-title">Past Experience</div>'
+        f'<div class="memory-stage-content">{past_exp}</div>'
+        f'</div>'
+        f'<div class="memory-stage-box">'
+        f'<div class="memory-stage-title">Current Evidence</div>'
+        f'<div class="memory-stage-content">{curr_evid}</div>'
+        f'</div>'
+        f'<div class="memory-stage-box" style="background: #fdf4ff; border-color: #f0abfc;">'
+        f'<div class="memory-stage-title" style="color: #86198f;">Why</div>'
+        f'<div class="memory-stage-content" style="color: #701a75;">{why_reason}</div>'
+        f'</div>'
+        f'</div>'
+        f'<div style="margin-top: 12px; background: #ffffff; border: 1px solid #ddd6fe; border-radius: 6px; padding: 12px 14px;">'
+        f'<div style="font-size: 11px; font-weight: 700; color: #6d28d9; text-transform: uppercase;">Adapted Decision</div>'
+        f'<div style="font-size: 13.5px; color: #334155; margin-top: 4px; font-weight: 600;">{adapted_decision}</div>'
+        f'</div>'
+        f'{override_banner}'
+        f'</div>'
+    )
     st.markdown(html, unsafe_allow_html=True)
 
 

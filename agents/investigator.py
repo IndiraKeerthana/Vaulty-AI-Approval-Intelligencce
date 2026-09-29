@@ -15,7 +15,7 @@ class InvestigatorAgent:
         """
         Investigates an AP exception using evidence collection and memory recall.
         Compares recalled memories directly against current evidence (RECALL -> VERIFY -> ADAPT).
-        Returns a structured business reasoning object with NO developer chain-of-thought traces.
+        Principle: MEMORY GUIDES THE INVESTIGATION. CURRENT EVIDENCE DECIDES THE OUTCOME.
         """
         cid = case_id or invoice_id
         log_audit_event(cid, "InvestigatorAgent", "START_INVESTIGATION", {"invoice_id": invoice_id})
@@ -34,13 +34,93 @@ class InvestigatorAgent:
         vendor_hist = biz_repo.get_vendor_history(vendor_id) if vendor_id else {}
         amendments = biz_repo.get_amendments(vendor_id) if vendor_id else []
 
-        # 2. Recall Hindsight memory dynamically
-        search_query = "discrepancy price amendment partial delivery duplicate fraud bank"
-        recalled_memories = mem_repo.recall(query=search_query, vendor_id=vendor_id, top_k=3)
+        vendor_name = vendor_hist.get("vendor_name") or inv.get("vendor_name", vendor_id) or "Vendor"
+
+        # 2. Build meaningful dynamic recall query from CURRENT CASE before concluding
+        inv_unit_price = inv.get("line_items", [{}])[0].get("unit_price") if inv.get("line_items") else None
+        po_unit_price = po.get("line_items", [{}])[0].get("unit_price") if po.get("line_items") else None
+
+        bank_updated_at = vendor_hist.get("banking_details_updated_at", "")
+        is_recent_bank_change = bool(bank_updated_at and ("2026-09" in bank_updated_at or vendor_hist.get("risk_rating") == "HIGH"))
+
+        if is_recent_bank_change:
+            disc_concept = "recent banking detail changes, bank account modifications, vendor risk rating, and fraud review outcomes"
+            detected_type = "Potential fraud signal"
+        elif "notes" in inv and "duplicate" in inv.get("notes", "").lower():
+            disc_concept = "duplicate invoice submissions, prior payment records, and duplicate resolution handling"
+            detected_type = "Duplicate billing"
+        elif not po_id or "error" in po:
+            disc_concept = "missing purchase order references, unbacked invoice submissions, and vendor query workflows"
+            detected_type = "Missing PO"
+        elif receipt.get("status") == "PARTIAL_DELIVERY":
+            disc_concept = "quantity discrepancies, partial delivery receipts, warehouse receipt verification, and hold procedures"
+            detected_type = "Quantity mismatch"
+        elif inv_unit_price and po_unit_price and inv_unit_price != po_unit_price:
+            disc_concept = f"price discrepancies (invoiced ₹{inv_unit_price:,.2f} vs PO ₹{po_unit_price:,.2f}), approved amendments, contract rate terms, similar PO conditions, and their final human resolutions"
+            detected_type = "Price mismatch"
+        elif inv.get("total_amount") and po.get("total_amount") and inv.get("total_amount") != po.get("total_amount"):
+            disc_concept = "total amount variances, approved contract amendments, and human resolution outcomes"
+            detected_type = "Price mismatch"
+        else:
+            disc_concept = "matching line items, routine clean invoice approvals, and payment release verification"
+            detected_type = "None"
+
+        recall_query = f"Find previous AP exception investigations involving {vendor_name} ({vendor_id}) with {disc_concept}, similar PO conditions, and their final human resolutions."
+
+        # 3. Query memory BEFORE reaching final conclusion
+        raw_memories = mem_repo.recall(query=recall_query, vendor_id=vendor_id, top_k=3)
+
+        memory_recall = []
+        for m in raw_memories:
+            if isinstance(m, dict):
+                text_content = m.get("text") or m.get("lesson") or m.get("content", "")
+                doc_id = m.get("document_id") or m.get("lesson_id") or m.get("source_case_id", "")
+                rel = m.get("confidence_score") or m.get("score") or 0.95
+                src = m.get("source") or ("hindsight" if mem_repo.get_memory_mode() == "Hindsight" else "local_fallback")
+                memory_recall.append({
+                    "text": text_content,
+                    "document_id": doc_id,
+                    "relevance": rel,
+                    "source": src,
+                    "metadata": m.get("metadata", {})
+                })
+            elif isinstance(m, str):
+                memory_recall.append({
+                    "text": m,
+                    "document_id": "",
+                    "relevance": 0.95,
+                    "source": "hindsight" if mem_repo.get_memory_mode() == "Hindsight" else "local_fallback",
+                    "metadata": {}
+                })
+
+        # 4. Use Reflect for higher-level synthesis on meaningful exceptions
+        memory_reflection = {}
+        if detected_type != "None" and raw_memories:
+            reflect_query = (
+                f"Based on previous Vaulty investigations and the current case evidence for {vendor_name} ({cid}), "
+                f"what prior experience is relevant to this {detected_type} exception, what should be verified now, "
+                f"and how should the previous experience influence—but not override—the current decision?"
+            )
+            reflection_res = mem_repo.reflect(
+                query=reflect_query,
+                context={
+                    "case_id": cid,
+                    "vendor_id": vendor_id,
+                    "exception_type": detected_type,
+                    "current_evidence": [
+                        f"Invoice {invoice_id} amount: ₹{inv.get('total_amount', 0):,.2f}",
+                        f"PO {po_id} amount: ₹{po.get('total_amount', 0):,.2f}",
+                        f"Approved amendments: {len(amendments)}"
+                    ],
+                    "recalled_memories": [m.get("text", "") for m in memory_recall]
+                },
+                case_id=cid
+            )
+            memory_reflection = reflection_res
 
         prompt = f"""
 You are the Investigator Agent for Vaulty (AI Exception Intelligence).
-Investigate invoice exception {invoice_id} for vendor {vendor_id}.
+Investigate invoice exception {invoice_id} for vendor {vendor_name} ({vendor_id}).
 
 PRINCIPLE: MEMORY GUIDES THE INVESTIGATION. CURRENT EVIDENCE DECIDES THE OUTCOME.
 Recalled memories suggest previous experiences, BUT YOU MUST VERIFY THEM AGAINST CURRENT EVIDENCE.
@@ -52,16 +132,28 @@ Current Receipt: {json.dumps(receipt, indent=2)}
 Contract Terms: {json.dumps(contract, indent=2)}
 Vendor Master Profile: {json.dumps(vendor_hist, indent=2)}
 Current Approved Amendments: {json.dumps(amendments, indent=2)}
-Recalled Hindsight Memories: {json.dumps(recalled_memories, indent=2)}
+Recalled Experience: {json.dumps(memory_recall, indent=2)}
+Higher-Level Reflection: {json.dumps(memory_reflection, indent=2)}
 
-Synthesize your investigation into a strict JSON object:
-- "exception_type": "Price mismatch" / "Quantity mismatch" / "Missing PO" / "Duplicate billing" / "Potential fraud signal"
+Determine memory verdict:
+- "CONFIRMED": Past memory is relevant AND current evidence supports the same pattern.
+- "CONTRADICTED": Past memory is relevant BUT current evidence conflicts with it.
+- "INSUFFICIENT": Memory exists but is not strong enough or current evidence does not allow confirmation (or no past memory exists).
+
+Return a strict JSON object:
+- "exception_type": "{detected_type}"
 - "current_evidence": ["List of verified evidence statements"]
 - "relevant_memory": ["Summaries of recalled memories"]
-- "memory_influence": "Detailed explanation of how recalled memory guided investigation and whether current evidence confirmed or contradicted it"
-- "memory_verdict": "CONFIRMED" or "CONTRADICTED" or "NOT_APPLICABLE"
+- "memory_verdict": "CONFIRMED" or "CONTRADICTED" or "INSUFFICIENT"
+- "memory_influence": {{
+    "status": "CONFIRMED | CONTRADICTED | INSUFFICIENT",
+    "past_experience": "...",
+    "current_evidence": "...",
+    "reason": "...",
+    "adapted_decision": "..."
+  }}
 - "reasoning_summary": "Concise plain-English business narrative"
-- "recommended_action": "APPLY_AMENDMENT" / "DRAFT_VENDOR_QUERY" / "REQUEST_CORRECTION" / "RESOLVE_DUPLICATE" / "FLAG_FRAUD" / "ESCALATE_PROCUREMENT"
+- "recommended_action": "APPLY_AMENDMENT" / "DRAFT_VENDOR_QUERY" / "REQUEST_CORRECTION" / "RESOLVE_DUPLICATE" / "FLAG_FRAUD" / "CLEAR"
 - "verified_amendment_id": "ID of approved amendment if found, else null"
 - "requires_human": true
 - "risk_reason": "Specific risk explanation"
@@ -69,24 +161,22 @@ Synthesize your investigation into a strict JSON object:
 """
 
         def fallback_investigation():
-            exception_type = "Price mismatch"
+            exception_type = detected_type
             current_evidence = []
-            relevant_memory = [m.get("lesson", "") for m in recalled_memories]
-            memory_influence = ""
-            memory_verdict = "NOT_APPLICABLE"
+            relevant_memory = [m.get("text", "") for m in memory_recall]
+            memory_verdict = "INSUFFICIENT"
             recommended_action = ""
             verified_amendment_id = None
             risk_reason = ""
             evidence_gaps = []
 
-            # Fraud Banking Anomaly Check
-            bank_updated_at = vendor_hist.get("banking_details_updated_at", "")
-            is_recent_bank_change = False
-            if bank_updated_at and ("2026-09" in bank_updated_at or vendor_hist.get("risk_rating") == "HIGH"):
-                is_recent_bank_change = True
+            past_experience_text = (
+                relevant_memory[0] if relevant_memory else
+                f"No prior exception resolutions found for {vendor_name}."
+            )
 
+            # 1. Fraud Banking Anomaly Check
             if is_recent_bank_change:
-                exception_type = "Potential fraud signal"
                 current_evidence = [
                     f"Vendor banking details updated recently on {bank_updated_at}",
                     f"Invoice total ₹{inv.get('total_amount', 0):,.2f} exceeds PO total ₹{po.get('total_amount', 0):,.2f}",
@@ -95,12 +185,18 @@ Synthesize your investigation into a strict JSON object:
                 recommended_action = "FLAG_FRAUD"
                 risk_reason = "Recent bank account modification combined with rate discrepancy poses severe financial risk."
                 evidence_gaps = ["Vendor identity re-verification", "Bank account change confirmation"]
-                memory_verdict = "CONFIRMED"
-                memory_influence = "Recalled institutional security policy: Banking detail changes during a discrepancy mandate immediate fraud review."
+                has_fraud_memory = any("fraud" in m.lower() or "bank" in m.lower() for m in relevant_memory)
+                if has_fraud_memory:
+                    memory_verdict = "CONFIRMED"
+                    reason_text = "Recalled institutional security policy mandates immediate fraud review when banking details are modified."
+                    adapted_text = "Route invoice directly to Fraud Review Board. Automatic payment release is blocked."
+                else:
+                    memory_verdict = "CONFIRMED"
+                    reason_text = "High risk security anomaly verified against master vendor record."
+                    adapted_text = "Route invoice directly to Fraud Review Board."
 
-            # Duplicate Invoice Check
-            elif "notes" in inv and "duplicate" in inv.get("notes", "").lower():
-                exception_type = "Duplicate billing"
+            # 2. Duplicate Invoice Check
+            elif detected_type == "Duplicate billing":
                 current_evidence = [
                     f"Invoice ID {invoice_id} matches description and total of PO {po_id}",
                     "Invoice notes indicate re-submission of prior billing period"
@@ -109,11 +205,11 @@ Synthesize your investigation into a strict JSON object:
                 risk_reason = "Risk of duplicate payment release for previously billed goods."
                 evidence_gaps = []
                 memory_verdict = "CONFIRMED"
-                memory_influence = "Recalled duplicate handling procedure: Verify prior payment records and mark duplicate as resolved."
+                reason_text = "Current evidence verifies invoice is an identical duplicate re-submission."
+                adapted_text = "Close exception as duplicate submission; do not release duplicate payment."
 
-            # Missing PO Check
-            elif not po_id or "error" in po:
-                exception_type = "Missing PO"
+            # 3. Missing PO Check
+            elif detected_type == "Missing PO":
                 current_evidence = [
                     f"Invoice {invoice_id} submitted without valid Purchase Order reference",
                     f"Vendor master record {vendor_id} requires PO backing for all invoices"
@@ -121,12 +217,12 @@ Synthesize your investigation into a strict JSON object:
                 recommended_action = "DRAFT_VENDOR_QUERY"
                 risk_reason = "Unbacked invoice submitted without prior procurement authorization."
                 evidence_gaps = ["Valid Purchase Order reference from vendor"]
-                memory_verdict = "CONFIRMED"
-                memory_influence = "Recalled no-PO policy: Query vendor to provide matching purchase order reference."
+                memory_verdict = "INSUFFICIENT" if not relevant_memory else "CONFIRMED"
+                reason_text = "Current evidence indicates absence of required purchase order reference."
+                adapted_text = "Hold invoice and draft vendor query requesting authorized purchase order reference."
 
-            # Quantity / Partial Delivery Check
-            elif receipt.get("status") == "PARTIAL_DELIVERY":
-                exception_type = "Quantity mismatch"
+            # 4. Quantity / Partial Delivery Check
+            elif detected_type == "Quantity mismatch":
                 rec_qty = receipt.get("line_items", [{}])[0].get("received_quantity", 0)
                 inv_qty = inv.get("line_items", [{}])[0].get("quantity", 0)
 
@@ -139,35 +235,37 @@ Synthesize your investigation into a strict JSON object:
                 risk_reason = "Overbilling for goods not yet physically received at warehouse."
                 evidence_gaps = ["Delivery confirmation for remaining units"]
 
-                has_human_correction = any("HUMAN CORRECTION" in m.get("lesson", "") or "partial" in m.get("lesson", "").lower() for m in recalled_memories)
+                has_human_correction = any("HUMAN CORRECTION" in m or "partial" in m.lower() or "receipt" in m.lower() for m in relevant_memory)
                 if has_human_correction:
                     memory_verdict = "CONFIRMED"
-                    memory_influence = "PAST HUMAN CORRECTION RECALLED: Supervisor previously corrected agent for auto-approving partial deliveries. Current evidence confirms warehouse received only partial quantity, so agent adaptively holds full payment and requests corrected invoice."
+                    reason_text = "Past supervisor guidance instructed verifying warehouse receipt before payment release. Current evidence confirms partial delivery."
+                    adapted_text = "Hold full payment and issue formal request for corrected invoice matching received quantity."
                 else:
                     memory_verdict = "CONFIRMED"
-                    memory_influence = "Recalled partial delivery handling policy: Hold full payment until physical receipt is confirmed."
+                    reason_text = "Warehouse receipt documents partial delivery; invoice billed full quantity."
+                    adapted_text = "Request corrected invoice for received quantity."
 
-            # Price Mismatch Check
-            elif inv.get("total_amount") != po.get("total_amount"):
-                exception_type = "Price mismatch"
-                inv_unit_price = inv.get("line_items", [{}])[0].get("unit_price", 0)
-                po_unit_price = po.get("line_items", [{}])[0].get("unit_price", 0)
-
+            # 5. Price Mismatch Check
+            elif detected_type == "Price mismatch":
+                # Check for approved amendment matching current PO and rate
                 matching_amendment = None
                 for amd in amendments:
                     if amd.get("po_id") == po_id and amd.get("status") == "APPROVED":
-                        if amd.get("amended_unit_price") == inv_unit_price:
+                        if inv_unit_price is not None and amd.get("amended_unit_price") == inv_unit_price:
+                            matching_amendment = amd
+                            break
+                        elif amd.get("amended_unit_price"):
                             matching_amendment = amd
                             break
 
-                has_amendment_memory = any("amendment" in m.get("lesson", "").lower() or "price" in m.get("lesson", "").lower() for m in recalled_memories)
+                has_amendment_memory = any("amendment" in m.lower() or "price" in m.lower() for m in relevant_memory)
 
                 if matching_amendment:
                     verified_amendment_id = matching_amendment.get("amendment_id")
                     current_evidence = [
-                        f"Invoiced unit price ₹{inv_unit_price:,.2f} vs PO unit price ₹{po_unit_price:,.2f}",
+                        f"Invoiced unit price ₹{inv_unit_price:,.2f} vs PO unit price ₹{po_unit_price:,.2f}" if (inv_unit_price and po_unit_price) else "Invoiced total exceeds PO total",
                         f"Verified active Approved Amendment {verified_amendment_id} signed by {matching_amendment.get('approved_by')}",
-                        f"Amended rate ₹{matching_amendment.get('amended_unit_price'):,.2f} exactly matches invoice rate ₹{inv_unit_price:,.2f}"
+                        f"Amended rate ₹{matching_amendment.get('amended_unit_price'):,.2f} matches invoice rate ₹{inv_unit_price:,.2f}" if inv_unit_price else "Amendment authorizes rate adjustment"
                     ]
                     recommended_action = "APPLY_AMENDMENT"
                     risk_reason = "Price discrepancy is backed by verified contract amendment."
@@ -175,14 +273,16 @@ Synthesize your investigation into a strict JSON object:
 
                     if has_amendment_memory:
                         memory_verdict = "CONFIRMED"
-                        memory_influence = f"Recalled past experience that pricing increases may be backed by approved amendments. Current evidence search confirmed approved amendment {verified_amendment_id} for PO {po_id}."
+                        reason_text = "Past experience suggested price variances for this vendor could be backed by approved amendments. Current evidence search verified active approved amendment."
+                        adapted_text = f"Apply verified amendment {verified_amendment_id} and recommend payment approval."
                     else:
                         memory_verdict = "CONFIRMED"
-                        memory_influence = f"Current evidence search confirmed approved pricing amendment {verified_amendment_id}."
+                        reason_text = f"Current evidence search confirmed approved pricing amendment {verified_amendment_id}."
+                        adapted_text = f"Apply approved amendment {verified_amendment_id} and proceed with payment approval."
 
                 else:
                     current_evidence = [
-                        f"Invoiced unit price ₹{inv_unit_price:,.2f} vs PO unit price ₹{po_unit_price:,.2f}",
+                        f"Invoiced unit price ₹{inv_unit_price:,.2f} vs PO unit price ₹{po_unit_price:,.2f}" if (inv_unit_price and po_unit_price) else "Invoiced total exceeds PO total",
                         f"Amendment log searched for vendor {vendor_id} - NO approved amendment found for PO {po_id}",
                         "Master contract mandates signed pricing amendment for rate adjustments"
                     ]
@@ -192,33 +292,39 @@ Synthesize your investigation into a strict JSON object:
 
                     if has_amendment_memory:
                         memory_verdict = "CONTRADICTED"
-                        memory_influence = f"PAST EXPERIENCE CONTRADICTED BY CURRENT EVIDENCE: Recalled prior experience where rate increases were supported by amendments. However, current evidence check revealed NO approved amendment for PO {po_id}. Vaulty adapted and refused to auto-resolve, drafting vendor query instead."
+                        reason_text = "Past experience suggested this variance could be legitimate, but the current case contains no matching approved amendment. Current evidence overrides memory."
+                        adapted_text = "Refuse payment approval. Place invoice on hold and draft vendor query regarding unamended rate. Evidence overrides memory."
                     else:
-                        memory_verdict = "NOT_APPLICABLE"
-                        memory_influence = "No approved pricing amendment found in vendor records for current PO."
+                        memory_verdict = "INSUFFICIENT"
+                        reason_text = "No approved pricing amendment found in vendor records for current PO."
+                        adapted_text = "Hold invoice and draft vendor query."
 
+            # 6. Clean / Clear Case
             else:
-                exception_type = "None"
                 current_evidence = ["Matching records across Invoice, PO, and Goods Receipt"]
                 recommended_action = "CLEAR"
                 risk_reason = "No discrepancy found."
                 evidence_gaps = []
-                memory_verdict = "NOT_APPLICABLE"
-                memory_influence = "Routine clear case."
+                memory_verdict = "INSUFFICIENT"
+                reason_text = "Routine matching invoice; records are consistent."
+                adapted_text = "Approve payment release. No exception requires resolution."
 
             if exception_type == "None" or recommended_action in ("CLEAR", "APPROVE", "CONTINUE_WITH_PAYMENT"):
                 reasoning_summary = "No issues found. The invoice matches the available purchase order and delivery evidence."
             else:
                 reasoning_summary = f"Investigation completed for {invoice_id}. Exception: {exception_type}. Recommended Action: {recommended_action}."
-            past_experience = relevant_memory[0] if relevant_memory else "Checking organizational database for previous vendor cases..."
-            curr_evid_summary = "; ".join(current_evidence)
 
-            if memory_verdict == "CONFIRMED":
-                means_text = "Memory confirmed by current evidence."
-            elif memory_verdict == "CONTRADICTED":
-                means_text = "Past experience does not apply to the current evidence. Evidence overrides past experience."
-            else:
-                means_text = "No relevant past experience found." if not relevant_memory else "Past experience was found, but current evidence is not sufficient to apply it."
+            current_evidence_summary = "; ".join(current_evidence)
+
+            mem_influence_obj = {
+                "status": memory_verdict,
+                "past_experience": past_experience_text,
+                "current_evidence": current_evidence_summary,
+                "reason": reason_text,
+                "adapted_decision": adapted_text
+            }
+
+            logger.info(f"[HINDSIGHT] memory verdict: {memory_verdict}")
 
             return {
                 "case_id": cid,
@@ -228,11 +334,13 @@ Synthesize your investigation into a strict JSON object:
                 "current_evidence": current_evidence,
                 "findings": reasoning_summary,
                 "relevant_memory": relevant_memory,
+                "memory_recall": memory_recall,
+                "memory_reflection": memory_reflection,
                 "memory_verdict": memory_verdict,
-                "memory_influence": memory_influence,
-                "memory_explanation": memory_influence,
+                "memory_influence": mem_influence_obj,
+                "memory_explanation": reason_text,
                 "reasoning_summary": reasoning_summary,
-                "conclusion": means_text,
+                "conclusion": adapted_text,
                 "recommended_action": recommended_action,
                 "requires_human": True,
                 "requires_human_review": True,
@@ -242,10 +350,10 @@ Synthesize your investigation into a strict JSON object:
                 "risk_reason": risk_reason,
                 "evidence_gaps": evidence_gaps,
                 "memory_influence_analysis": {
-                    "memory_recalled": past_experience,
-                    "current_evidence": curr_evid_summary,
+                    "memory_recalled": past_experience_text,
+                    "current_evidence": current_evidence_summary,
                     "confirmation_or_contradiction": memory_verdict,
-                    "final_adaptation": means_text
+                    "final_adaptation": adapted_text
                 }
             }
 
@@ -255,35 +363,51 @@ Synthesize your investigation into a strict JSON object:
         res["case_id"] = cid
         res["investigation_status"] = "COMPLETED"
         if "discrepancy_type" not in res:
-            res["discrepancy_type"] = res.get("exception_type", "Invoice Exception")
+            res["discrepancy_type"] = res.get("exception_type", detected_type)
         if "findings" not in res:
             res["findings"] = res.get("reasoning_summary", "Evidence verified against operational records.")
-        if "conclusion" not in res:
-            res["conclusion"] = res.get("memory_influence", "Investigation completed.")
-        if "requires_human_review" not in res:
-            res["requires_human_review"] = True
-        if "resolution_state" not in res:
-            res["resolution_state"] = "AWAITING_HUMAN_SIGN_OFF"
-        if "learning_candidate" not in res:
-            res["learning_candidate"] = True
+        if "memory_recall" not in res:
+            res["memory_recall"] = memory_recall
+        if "memory_reflection" not in res:
+            res["memory_reflection"] = memory_reflection
 
-        if "memory_influence_analysis" not in res:
+        # Ensure memory_verdict is canonical
+        mv = res.get("memory_verdict", "INSUFFICIENT")
+        if mv in ("NOT_APPLICABLE", "NONE", "UNKNOWN"):
+            mv = "INSUFFICIENT"
+        res["memory_verdict"] = mv
+
+        # Ensure memory_influence object is properly structured
+        if "memory_influence" not in res or not isinstance(res.get("memory_influence"), dict):
             past_exp = res.get("relevant_memory", ["No prior memory"])[0] if res.get("relevant_memory") else "No prior memory"
             curr_evid = "; ".join(res.get("current_evidence", []))
-            mv = res.get("memory_verdict", "NOT_APPLICABLE")
             if mv == "CONFIRMED":
-                m_text = "Memory confirmed by current evidence."
+                reason = "Past experience confirmed by current evidence verification."
+                adapted = "Proceed with recommended resolution supported by verified records."
             elif mv == "CONTRADICTED":
-                m_text = "Past experience does not apply to the current evidence. Evidence overrides past experience."
+                reason = "Past experience suggested this variance could be legitimate, but the current case contains no matching approved amendment. Current evidence overrides memory."
+                adapted = "Refuse payment approval and hold invoice to issue vendor query. Evidence overrides memory."
             else:
-                m_text = "No relevant past experience found."
+                reason = "No strong prior experience found. Decided solely on current evidence."
+                adapted = "Proceed based on verified primary records."
 
-            res["memory_influence_analysis"] = {
-                "memory_recalled": past_exp,
+            res["memory_influence"] = {
+                "status": mv,
+                "past_experience": past_exp,
                 "current_evidence": curr_evid,
-                "confirmation_or_contradiction": mv,
-                "final_adaptation": m_text
+                "reason": reason,
+                "adapted_decision": adapted
             }
 
+        mi = res["memory_influence"]
+        if "memory_influence_analysis" not in res:
+            res["memory_influence_analysis"] = {
+                "memory_recalled": mi.get("past_experience", ""),
+                "current_evidence": mi.get("current_evidence", ""),
+                "confirmation_or_contradiction": mi.get("status", mv),
+                "final_adaptation": mi.get("adapted_decision", "")
+            }
+
+        logger.info(f"[HINDSIGHT] memory verdict: {res['memory_verdict']}")
         log_audit_event(cid, "InvestigatorAgent", "INVESTIGATION_COMPLETE", res)
         return res

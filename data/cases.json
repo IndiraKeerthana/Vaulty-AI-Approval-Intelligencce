@@ -20,11 +20,11 @@
     "vendor_name": "ACME Corp",
     "amount": 55000.0,
     "discrepancy_type": "Price mismatch (\u20b9550 vs \u20b9500 PO)",
-    "status": "RESOLVED",
+    "status": "AWAITING_HUMAN_PAYMENT_RELEASE",
     "risk_level": "Medium",
-    "last_action": "Payment release approved by Finance Manager.",
+    "last_action": "Linked approved amendment AM-17. Exception verified and ready for payment release.",
     "created_at": "2026-09-28 09:15:00",
-    "updated_at": "2026-09-29 22:34:07",
+    "updated_at": "2026-09-29 23:37:51",
     "po_id": "PO-2001"
   },
   {
@@ -38,7 +38,7 @@
     "risk_level": "Medium",
     "last_action": "Payment held: Verify receipt before releasing payment.",
     "created_at": "2026-09-28 09:30:00",
-    "updated_at": "2026-09-29 22:39:53",
+    "updated_at": "2026-09-29 23:51:17",
     "po_id": "PO-2002"
   },
   {
@@ -81,7 +81,7 @@
     "last_action": "Pending Triage",
     "created_at": "2026-09-28 10:15:00",
     "po_id": "PO-4001",
-    "updated_at": "2026-09-29 22:30:48"
+    "updated_at": "2026-09-29 23:22:58"
   },
   {
     "case_id": "VX-5001",

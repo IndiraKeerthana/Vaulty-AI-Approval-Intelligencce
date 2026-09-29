@@ -181,5 +181,95 @@ def test_analytics_and_human_gated_approval_state():
     biz_repo.update_case("VX-4001", "UNPROCESSED", "Pending Triage")
 
 
+def test_hindsight_learning_loop_cases_a_b_c():
+    """
+    Directly verifies Section 13 learning loop requirement:
+    CASE A: Vendor ACME, Price mismatch, Approved amendment exists, Human approves -> Retain called with full narrative & human outcome.
+    CASE B: Same vendor, Similar price mismatch, Approved amendment exists -> Recall retrieves experience, current amendment verified -> CONFIRMED.
+    CASE C: Same vendor, Similar price mismatch, NO approved amendment -> Recalls experience, current evidence contradicts it -> CONTRADICTED -> Evidence overrides memory.
+    """
+    pipeline = InvestigationPipeline()
+
+    # --- CASE A ---
+    res_a = pipeline.run_pipeline("INV-2001", "VX-2001")
+    inv_a = res_a["stage_5_investigation"]
+
+    # Human decision on Case A: Human approves
+    ref_res_a = pipeline.process_human_decision(
+        case_id="VX-2001",
+        vendor_id="VND-002",
+        vendor_name="ACME Corp",
+        discrepancy_type="Price mismatch (₹550 vs ₹500 PO)",
+        agent_recommendation=inv_a.get("recommended_action", "APPLY_AMENDMENT"),
+        human_outcome="APPROVED",
+        human_notes="Approved payment release after verifying signed amendment AM-17.",
+        investigation_result=inv_a
+    )
+
+    # 1. Hindsight retain is called
+    assert ref_res_a is not None
+    assert ref_res_a.get("document_id") == "vaulty-case-VX-2001"
+    assert "source:vaulty" in ref_res_a.get("tags", [])
+    assert "vendor:VND-002" in ref_res_a.get("tags", [])
+
+    # 2. Memory contains the investigation and human outcome
+    saved_lesson = ref_res_a.get("lesson", "")
+    assert "ACME Corp" in saved_lesson
+    assert "APPROVED" in saved_lesson
+    assert "AM-17" in saved_lesson or "amendment" in saved_lesson.lower()
+    assert "approved" in saved_lesson.lower()
+
+    # --- CASE B ---
+    # Same vendor, similar price mismatch, approved amendment exists again
+    res_b = pipeline.run_pipeline("INV-2001", "VX-2001")
+    inv_b = res_b["stage_5_investigation"]
+
+    # 1. Hindsight recall is called
+    assert "memory_recall" in res_b
+    assert len(res_b["memory_recall"]) > 0
+
+    # 2. Previous experience is retrieved
+    recalled_texts = [m.get("text", "") for m in res_b["memory_recall"]]
+    assert any("ACME" in t or "amendment" in t.lower() or "price" in t.lower() for t in recalled_texts)
+
+    # 3. Current amendment is verified
+    assert inv_b.get("verified_amendment_id") == "AM-17"
+
+    # 4. Memory verdict = CONFIRMED
+    assert inv_b["memory_verdict"] == "CONFIRMED"
+    mi_b = inv_b["memory_influence"]
+    assert mi_b["status"] == "CONFIRMED"
+    assert "reason" in mi_b and len(mi_b["reason"]) > 0
+    assert "adapted_decision" in mi_b and len(mi_b["adapted_decision"]) > 0
+
+    # 5. Resolution uses recalled experience as supporting context
+    res_b_action = res_b["stage_6_resolution"]
+    assert res_b_action["action_taken"] in ("APPLY_CONTRACT_AMENDMENT", "APPROVE_PAYMENT_RELEASE")
+
+    # --- CASE C ---
+    # Same vendor, similar price mismatch, NO approved amendment (VX-2002 on PO-2002)
+    res_c = pipeline.run_pipeline("INV-2002", "VX-2002")
+    inv_c = res_c["stage_5_investigation"]
+
+    # 1. Previous ACME experience is recalled
+    assert len(res_c["memory_recall"]) > 0
+
+    # 2. Current evidence contradicts it
+    assert inv_c.get("verified_amendment_id") is None
+    assert inv_c["memory_verdict"] == "CONTRADICTED"
+
+    # 3. Memory verdict = CONTRADICTED
+    mi_c = inv_c["memory_influence"]
+    assert mi_c["status"] == "CONTRADICTED"
+
+    # 4. Evidence overrides memory explicitly stated
+    assert "evidence overrides memory" in mi_c["reason"].lower() or "evidence overrides memory" in mi_c["adapted_decision"].lower()
+
+    # 5. Recommendation changes accordingly
+    assert inv_c["recommended_action"] == "DRAFT_VENDOR_QUERY"
+    assert res_c["stage_6_resolution"]["action_taken"] == "DRAFT_VENDOR_QUERY"
+
+
 if __name__ == "__main__":
     pytest.main([__file__])
+

@@ -524,6 +524,12 @@ def render_case_detail_view(case_id: str):
     """, unsafe_allow_html=True)
 
     # AUTOMATIC INVESTIGATION PIPELINE (Cached per case_id)
+    col_pip1, col_pip2 = st.columns([3, 1])
+    with col_pip2:
+        if st.button("Run Investigation Pipeline", use_container_width=True, key=f"force_pipe_{case_id}"):
+            st.session_state.pop(f"pipeline_res_{case_id}", None)
+            st.rerun()
+
     pipe_res = st.session_state.get(f"pipeline_res_{case_id}")
     if not pipe_res:
         with st.spinner("Reviewing current evidence, contract terms, and past organizational experience..."):
@@ -585,7 +591,11 @@ def render_case_detail_view(case_id: str):
     # --------------------------------------------------
     # SECTION 3 — VAULTY REMEMBERED (SIGNATURE VIOLET PANEL)
     # --------------------------------------------------
-    render_signature_memory_panel(mem_analysis)
+    render_signature_memory_panel(
+        analysis=mem_analysis,
+        memory_influence=inv_res.get("memory_influence"),
+        human_outcome=status
+    )
 
     # --------------------------------------------------
     # SECTION 4 — WHAT THIS MEANS
@@ -696,7 +706,8 @@ def render_case_detail_view(case_id: str):
                     discrepancy_type=issue,
                     agent_recommendation=inv_res.get("recommended_action", "APPROVE"),
                     human_outcome="APPROVED",
-                    human_notes="Payment release authorized after evidence verification."
+                    human_notes="Payment release authorized after evidence verification.",
+                    investigation_result=inv_res
                 )
                 st.session_state[f"lesson_saved_{case_id}"] = ref_res
                 st.rerun()
@@ -712,7 +723,8 @@ def render_case_detail_view(case_id: str):
                     discrepancy_type=issue,
                     agent_recommendation=inv_res.get("recommended_action", "APPROVE"),
                     human_outcome="CORRECTED",
-                    human_notes=notes_input
+                    human_notes=notes_input,
+                    investigation_result=inv_res
                 )
                 st.session_state[f"lesson_saved_{case_id}"] = ref_res
                 st.rerun()
