@@ -213,7 +213,6 @@ def render_home_page():
 
     # 5. RECENT ACTIVITY (FILTERED FOR PLAIN BUSINESS EVENTS ONLY - NO TECHNICAL LOGS)
     with col_left:
-        st.markdown('<div class="vaulty-card" style="height: 100%;">', unsafe_allow_html=True)
         st.markdown("<div style='font-size: 14.5px; font-weight: 700; color: #0f172a; margin-bottom: 2px;'>Recent Activity</div>", unsafe_allow_html=True)
         st.markdown("<div style='font-size: 12px; color: #64748b; margin-bottom: 12px;'>Recent business events across invoice exceptions.</div>", unsafe_allow_html=True)
 
@@ -233,11 +232,9 @@ def render_home_page():
                 """, unsafe_allow_html=True)
         else:
             render_empty_state("No recent activity.", "No Activity")
-        st.markdown("</div>", unsafe_allow_html=True)
 
     # 6. RECENT INVESTIGATIONS (Real Cases Table)
     with col_right:
-        st.markdown('<div class="vaulty-card" style="height: 100%;">', unsafe_allow_html=True)
         st.markdown("<div style='font-size: 14.5px; font-weight: 700; color: #0f172a; margin-bottom: 2px;'>Recent Investigations</div>", unsafe_allow_html=True)
         st.markdown("<div style='font-size: 12px; color: #64748b; margin-bottom: 12px;'>Active exception cases in the operational queue.</div>", unsafe_allow_html=True)
 
@@ -274,7 +271,6 @@ def render_home_page():
                         st.rerun()
         else:
             render_empty_state("No exception cases currently in queue.", "No Investigations")
-        st.markdown("</div>", unsafe_allow_html=True)
 
 
 # --- PAGE 2: APPROVALS ---
@@ -990,7 +986,6 @@ def render_reports_page():
         st.markdown("<br/>", unsafe_allow_html=True)
         col_c1, col_c2 = st.columns(2)
         with col_c1:
-            st.markdown('<div class="vaulty-card">', unsafe_allow_html=True)
             st.markdown("<div style='font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 10px;'>Case Count by Exception Type</div>", unsafe_allow_html=True)
             cats = [b["discrepancy_type"] for b in breakdown if b.get("discrepancy_type")]
             vals = [b["case_count"] for b in breakdown if b.get("discrepancy_type")]
@@ -998,10 +993,8 @@ def render_reports_page():
                 render_plotly_horizontal_bar(cats, vals, color="#2563eb", height=240)
             else:
                 render_empty_state("No exception case breakdown data available.", "No Chart Data")
-            st.markdown("</div>", unsafe_allow_html=True)
 
         with col_c2:
-            st.markdown('<div class="vaulty-card">', unsafe_allow_html=True)
             st.markdown("<div style='font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 10px;'>Financial Overbilling Impact (₹)</div>", unsafe_allow_html=True)
             cats = [b["discrepancy_type"] for b in breakdown if b.get("discrepancy_type")]
             vals = [b["total_difference"] for b in breakdown if b.get("discrepancy_type")]
@@ -1009,7 +1002,6 @@ def render_reports_page():
                 render_plotly_horizontal_bar(cats, vals, color="#dc2626", is_currency=True, height=240)
             else:
                 render_empty_state("No financial impact breakdown data available.", "No Chart Data")
-            st.markdown("</div>", unsafe_allow_html=True)
     else:
         render_empty_state("No discrepancy scenarios recorded.", "No Breakdown Data")
 
